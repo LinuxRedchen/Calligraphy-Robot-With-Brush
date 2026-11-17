@@ -1,0 +1,40 @@
+# ---------- 系统 / 编辑器 ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# ---------- AI 代理 / 本地工具缓存（含本机路径，不要开源） ----------
+.workbuddy/
+.claude/
+.cursor/
+.vscode/
+.idea/
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ---------- 生成物 / 临时文件 ----------
+# G 代码产物不入库（体积大且属于个人作业数据）
+# 如需保留示例，放到 示例/ 目录并在此处加 !示例/*.gcode 例外
+*.gcode
+*.nc
+*.gco
+
+# 处理中间产物
+*.log
+hs_err_pid*.log
+*_蘸墨.gcode
+二值化结果*.png
+
+# 备份 / 临时目录
+*.bak
+*.orig
+*_备份_*/
+_tmp*/
+_tmp_*/
+temp/
+tmp/

@@ -1,0 +1,4012 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redchen 书法机器人 · 天工书画一代 ｜ 工作台</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --card:#fff; --line:#e6e1d6; --accent:#9e2b25; --accent2:#7d1f1a;
+    --seal:#a3302a; --ink:#232220;
+    --text:#232220; --muted:#6f6a61; --ok:#15803d; --err:#b91c1c; --warnbg:#fdf6e8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.6;font-size:14px;
+       background-image:radial-gradient(#00000005 1px, transparent 1px);background-size:4px 4px}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 18px 80px}
+
+  /* ===== 品牌抬头 ===== */
+  .brand{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+         padding:13px 18px;margin:0 0 18px;border:1px solid var(--line);border-radius:14px;
+         background:linear-gradient(135deg,#fffdf8 0%,#fffefb 55%,#fff 100%);
+         box-shadow:0 1px 2px rgba(40,32,20,.05), 0 8px 22px -18px rgba(40,32,20,.45);
+         position:relative;overflow:hidden}
+  .brand::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+         background:linear-gradient(180deg,var(--seal),#c25b46)}
+  .lockup{display:flex;align-items:center;gap:13px;min-width:0}
+  .seal{width:44px;height:44px;flex:0 0 44px;border-radius:8px;background:var(--seal);color:#fff;
+        display:flex;align-items:center;justify-content:center;
+        font-family:"KaiTi","STKaiti","Songti SC",serif;font-size:26px;font-weight:700;
+        line-height:1;padding-bottom:2px;
+        box-shadow:inset 0 0 0 2px rgba(255,255,255,.32), 0 2px 8px rgba(158,43,37,.30);
+        transform:rotate(-2.5deg)}
+  .names{min-width:0}
+  .names .nm{font-size:17px;font-weight:700;line-height:1.3;letter-spacing:.3px;color:var(--ink);
+             white-space:nowrap}
+  .names .nm .lat{font-family:Georgia,"Times New Roman",serif;letter-spacing:.6px;margin-right:7px}
+  .names .nm .cn{font-family:"KaiTi","STKaiti","Songti SC",serif;font-size:20px;letter-spacing:1px}
+  .names .mdl{font-size:11.5px;color:var(--muted);letter-spacing:2px;margin-top:3px;
+              font-family:"KaiTi","STKaiti",serif}
+  .names .mdl .en{font-family:Georgia,serif;letter-spacing:1.4px;font-size:10.5px;opacity:.75;margin-left:6px}
+  .by{font-size:12px;color:var(--muted);text-align:right;line-height:1.5;white-space:nowrap}
+  .by b{font-family:"KaiTi","STKaiti","Songti SC",serif;font-size:15px;font-weight:700;
+        color:var(--ink);letter-spacing:2px;margin-left:4px}
+  @media (max-width:640px){
+    .names .nm{white-space:normal}
+    .by{text-align:left;white-space:normal}
+  }
+  .pagefoot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);
+            font-size:12px;color:var(--muted);text-align:center;letter-spacing:.5px}
+  .pagefoot .dot{margin:0 7px;opacity:.5}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-size:20px;margin:0;font-weight:700;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:12.5px;margin:3px 0 0}
+
+  /* 步骤条 */
+  .stepper{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
+  .stepper button{
+    flex:1 1 160px;display:flex;align-items:center;gap:9px;cursor:pointer;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:9px 12px;font-size:13px;color:var(--muted);font-family:inherit;text-align:left;
+    transition:.15s;
+  }
+  .stepper button .num{
+    width:20px;height:20px;flex:0 0 20px;border-radius:50%;background:#f0ece4;color:#9a938a;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700
+  }
+  .stepper button.active{border-color:var(--accent);color:var(--accent);background:#fdf2ef;font-weight:600
+    ;box-shadow:0 2px 10px -6px rgba(158,43,37,.6)}
+  .stepper button.active .num{background:var(--accent);color:#fff}
+  .stepper button.done .num{background:var(--ok);color:#fff}
+  .stepper button.done{color:var(--text)}
+
+  /* 面板 */
+  .panel{display:none}
+  .panel.on{display:block;animation:fade .18s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:16px;align-items:start}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:17px 18px;
+        box-shadow:0 1px 2px rgba(40,32,20,.035), 0 10px 26px -24px rgba(40,32,20,.5)}
+  .card h3{margin:0 0 4px;font-size:14.5px;letter-spacing:.2px}
+  .card .hint{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+
+  .drop{border:2px dashed #d3ccc0;border-radius:12px;background:
+        linear-gradient(180deg,#fffdf9,#fbf8f2);padding:26px 16px;text-align:center;
+        cursor:pointer;color:var(--muted);font-size:13px;transition:.16s}
+  .drop:hover{border-color:#b9ac9c;background:linear-gradient(180deg,#fffdf9,#f8f3ea)}
+  .drop.over{border-color:var(--accent);background:#fdf1ee;color:var(--accent)}
+  .drop b{color:var(--text)}
+  .drop .ok{color:var(--ok);font-weight:700}
+  .drop .di{display:block;margin:0 auto 8px;width:34px;height:34px;opacity:.55}
+
+  /* 处理中遮罩 */
+  .busy{position:fixed;inset:0;z-index:999;display:none;align-items:center;justify-content:center;
+        background:rgba(42,37,30,.28);backdrop-filter:blur(2px)}
+  .busy.on{display:flex}
+  .busy-box{background:#fffdf8;border:1px solid var(--line);border-radius:16px;padding:22px 30px;
+            text-align:center;min-width:210px;
+            box-shadow:0 24px 60px -24px rgba(40,32,20,.65), 0 2px 6px rgba(40,32,20,.06)}
+  .ring{width:26px;height:26px;margin:0 auto 12px;border-radius:50%;
+        border:3px solid #f1e7e3;border-top-color:var(--accent);animation:spin .85s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .busy-box .bt{font-size:13.5px;font-weight:600;color:var(--ink)}
+  .busy-box .bs{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+  canvas{display:block;margin:0 auto;max-width:100%;max-height:520px;height:auto;
+         border:1px solid var(--line);border-radius:8px;background:#fff}
+  .cvbox{margin-top:12px}
+  .cvlab{font-size:12px;color:var(--muted);margin:0 0 5px}
+
+  /* ② 预览缩放条 */
+  .zbar{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+  .zbar .zbtn{min-width:30px;height:28px;padding:0 9px;border:1px solid var(--line);border-radius:7px;
+    background:#fff;color:#3a3733;font-size:14px;line-height:1;cursor:pointer;transition:.15s}
+  .zbar .zbtn:hover{border-color:var(--accent);color:var(--accent);background:#fffdfa}
+  .zbar .zbtn:active{transform:translateY(1px)}
+  .zbar .zbtn.w{font-size:12px;padding:0 11px}
+  .zbar .zval{min-width:50px;text-align:center;font-size:12.5px;color:#3a3733;
+    font-variant-numeric:tabular-nums}
+  .zbar .zhint{font-size:11.5px;color:var(--muted);margin-left:auto;white-space:nowrap}
+  #stCv{cursor:default}
+  #stCv.zoomed{cursor:grab}
+  #stCv.drag{cursor:grabbing}
+  input[type=number][readonly]{background:#faf8f3;color:#8a8478}
+  @media (max-width:640px){ .zbar .zhint{display:none} }
+
+  .rows{display:grid;gap:9px}
+  .row{display:grid;grid-template-columns:1fr 96px;gap:10px;align-items:center;font-size:13px}
+  .row label{color:#374151}
+  .row .valwrap{display:flex;align-items:center;gap:6px}
+  input[type=number],select,input[type=text]{
+    width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-family:inherit;
+    font-size:13px;background:#fff;color:var(--text);transition:border-color .15s, box-shadow .15s}
+  input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+  input[type=number]:focus,select:focus,input[type=text]:focus{
+    outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(158,43,37,.09)}
+  input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+  input[type=range]{width:100%}
+  .chk{display:flex;align-items:center;gap:7px;font-size:13px;color:#374151;cursor:pointer}
+  .sev{display:grid;gap:7px;margin-top:4px}
+  .sev label{display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer}
+  .sep{height:1px;background:var(--line);margin:12px 0}
+  .grp{font-size:12.5px;font-weight:700;color:#5c5750; margin:2px 0 7px;letter-spacing:.3px;
+       display:flex;align-items:center;gap:6px}
+  .grp::before{content:"";width:3px;height:11px;border-radius:2px;background:var(--accent);opacity:.75}
+  .sub2{font-size:12px;color:var(--muted);margin:-2px 0 8px}
+  .hidden{display:none!important}
+
+  .modes{display:flex;gap:8px;margin-bottom:12px}
+  .modes label{flex:1;border:1px solid var(--line);border-radius:9px;padding:9px 10px;cursor:pointer;
+    font-size:13px;text-align:center;transition:.15s}
+  .modes input{display:none}
+  .modes input:checked + span{color:var(--accent);font-weight:700}
+  .modes label:has(input:checked){border-color:var(--accent);background:#fdf2ef}
+
+  .btn{appearance:none;border:1px solid var(--accent);background:var(--accent);color:#fff;
+       padding:9px 16px;border-radius:9px;font-size:13.5px;font-family:inherit;cursor:pointer;font-weight:600}
+  .btn:hover{background:var(--accent2);border-color:var(--accent2)}
+  .btn:disabled{background:#d9d3c8;border-color:#d9d3c8;color:#fff;cursor:not-allowed}
+  .btn.ghost{background:#fff;color:var(--accent);border-color:#e0c8c1}
+  .btn.ghost:hover{border-color:var(--accent)}
+  .btn.ghost:hover{background:#f7f3ec}
+  .btn.big{width:100%;padding:11px;font-size:14px}
+  .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;justify-content:flex-end}
+  .actions .btn{flex:0 0 auto;min-width:136px}
+
+  .status{font-size:12.5px;color:var(--muted);margin-top:12px;min-height:18px;line-height:1.75}
+  .status b{color:var(--accent2)}
+  .err{color:var(--err)}
+
+  /* 拼版格 */
+  .slots{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px}
+  @media (max-width:760px){.slots{grid-template-columns:repeat(2,1fr)}}
+  .slot{border:1.5px dashed #c4cad2;border-radius:9px;padding:9px;min-height:86px;font-size:12px;
+        background:#fcfcfd;display:flex;flex-direction:column;gap:5px;position:relative}
+  .slot.filled{border-style:solid;border-color:#e3c9c2;background:#fffaf7}
+  .slot.over{border-color:var(--accent);background:#fdf1ee}
+  .slot .no{position:absolute;top:6px;right:8px;font-size:11px;color:#b6bdc8}
+  .slot .nm{color:var(--text);font-weight:600;word-break:break-all;line-height:1.35;padding-right:14px}
+  .slot .meta{color:var(--muted);font-size:11.5px}
+  .slot .pick{margin-top:auto;display:flex;gap:4px}
+  .slot .pick button{flex:1;font-size:11.5px;padding:3px 4px;border:1px solid var(--line);background:#fff;
+    border-radius:6px;cursor:pointer;font-family:inherit;color:#4b5563}
+  .slot .pick button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+  .slot .rm{font-size:11px;color:#9aa2ad;cursor:pointer;background:none;border:0;padding:0;text-align:left;font-family:inherit}
+  .slot .rm:hover{color:var(--err)}
+
+  pre{margin:10px 0 0;background:#221f1c;color:#d9d2c7;border-radius:9px;padding:11px 13px;
+      font-size:11.5px;line-height:1.55;overflow:auto;max-height:220px;
+      font-family:Consolas,Menlo,monospace}
+
+  .dl{display:inline-block;margin-top:12px;background:#1f6b4a;color:#fff;text-decoration:none;
+      padding:9px 18px;border-radius:9px;font-weight:600;font-size:13.5px;
+      box-shadow:0 6px 16px -10px rgba(31,107,74,.9)}
+  .dl:hover{filter:brightness(.94)}
+  .note{background:var(--warnbg);border:1px solid #ecdcbb;color:#7c4a03;border-radius:9px;
+        padding:9px 12px;font-size:12.5px;margin-top:12px}
+  .note b{color:#b45309}
+  .kbd{background:#f1f3f6;border:1px solid var(--line);border-radius:5px;padding:0 5px;font-size:12px}
+
+  /* ===== 连接 & 书写 ===== */
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .serhead{display:flex;align-items:center;gap:9px;margin:0 0 6px;flex-wrap:wrap}
+  .serhead h3{margin:0;font-size:14.5px}
+  .dot{width:9px;height:9px;border-radius:50%;background:#cbc4b7;flex:0 0 9px;transition:.2s}
+  .dot.on{background:#15803d;box-shadow:0 0 0 3px rgba(21,128,61,.14)}
+  .dot.run{background:var(--seal);box-shadow:0 0 0 3px rgba(163,48,42,.16);animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .chip{font-size:11.5px;padding:2px 9px;border-radius:999px;background:#f6f2e9;color:var(--muted);
+        border:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .jogpad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:11px 0}
+  .jogpad button{padding:8px 3px;font-size:12.5px;border:1px solid var(--line);background:#fff;
+    border-radius:8px;cursor:pointer;font-family:inherit;color:#3a3733;transition:.14s;white-space:nowrap}
+  .jogpad button:hover{border-color:var(--accent);color:var(--accent);background:#fffaf8}
+  .jogpad button:active{transform:translateY(1px)}
+  .jogpad button.mid{background:#faf7f0;color:#c0b8ac;cursor:default;font-size:14px}
+  .jogpad button.mid:hover{border-color:var(--line);color:#c0b8ac;background:#faf7f0}
+  .jogpad button:disabled{opacity:.5;cursor:not-allowed}
+  .bar{height:9px;border-radius:999px;background:#efeade;border:1px solid var(--line);overflow:hidden;margin:14px 0 8px}
+  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--seal),#c9694e);transition:width .2s ease}
+  .tline{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted);
+         padding:4px 0;border-bottom:1px dashed #efeade}
+  .tline:last-of-type{border-bottom:0}
+  .tline b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+  .fileline{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+  .fileline .fname{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;
+                   white-space:nowrap;flex:1;min-width:0}
+  .btn.sm{padding:5px 10px;font-size:12px;min-width:0;border-radius:7px;flex:0 0 auto}
+  .logbox{margin-top:8px;height:92px;overflow:auto;background:#fbf8f2;border:1px solid var(--line);
+          border-radius:8px;padding:7px 9px;font-size:11.5px;line-height:1.65;color:#5c5750;
+          font-family:Consolas,Menlo,monospace}
+  .logbox .t{color:#b3aca1}
+  .logbox .e{color:var(--err)}
+  .logbox .g{color:#15803d}
+  .serbtn3{justify-content:space-between;gap:7px}
+  .serbtn3 .btn{flex:1 1 0;min-width:0}
+  .fld{margin-bottom:10px}
+  .flab{display:block;font-size:12.5px;color:#4b4640;margin-bottom:4px}
+  .frow{display:flex;gap:6px;align-items:center}
+  .frow select{flex:1;min-width:0}
+
+  /* ================= 路线切换 ================= */
+  .modebar{display:flex;gap:9px;margin:0 0 12px;flex-wrap:wrap}
+  .modebar button{
+    flex:1 1 220px;display:flex;flex-direction:column;gap:1px;align-items:flex-start;text-align:left;
+    background:var(--card);border:1px solid var(--line);border-radius:11px;padding:9px 14px;
+    font-family:inherit;cursor:pointer;transition:.15s;max-width:300px}
+  .modebar button b{font-size:13.5px;font-weight:700;color:var(--text);letter-spacing:.3px}
+  .modebar button span{font-size:11.5px;color:var(--muted);line-height:1.45}
+  .modebar button:hover{border-color:#c9c0ae}
+  .modebar button.on{border-color:var(--accent);background:#fdf2ef;
+    box-shadow:0 2px 10px -6px rgba(158,43,37,.6)}
+  .modebar button.on b{color:var(--accent)}
+
+  /* ================= 第 ⑥ 步：字库排版（全部规则限定在 #p6 内，避免污染前五步） ================= */
+  #p6 .wzgrid{display:grid;grid-template-columns:400px minmax(0,1fr);gap:16px;align-items:start}
+  @media (max-width:1000px){#p6 .wzgrid{grid-template-columns:1fr}}
+  #p6 .wzcard{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:16px 16px 18px;
+    box-shadow:0 1px 2px rgba(40,32,20,.035), 0 10px 26px -24px rgba(40,32,20,.5);min-width:0}
+  #p6 .wzcard h2{font-size:14.5px;margin:0 0 12px;padding-left:9px;border-left:3px solid var(--accent);
+    display:flex;align-items:center;gap:8px}
+  #p6 .wzcard h2 .cnt{font-size:12px;color:var(--muted);font-weight:400}
+
+  #p6 .drop{border:1px dashed #d8d1c3;border-radius:11px;padding:14px;text-align:center;
+    background:#fcfaf5;margin-bottom:11px;cursor:default}
+  #p6 .drop.over{border-color:var(--accent);background:#fdf1ee}
+  #p6 .drop p{margin:7px 0 0;font-size:12px;color:var(--muted);line-height:1.55}
+  #p6 .bulkbox{border:1px solid var(--line);border-radius:11px;background:#fcfaf5;margin:10px 0 12px;padding:0 12px}
+  #p6 .bulkbox[open]{padding-bottom:12px}
+  #p6 .bulkbox summary{cursor:pointer;list-style:none;padding:10px 0;font-size:13px;font-weight:700;color:#3b3630;
+    display:flex;align-items:center;gap:6px}
+  #p6 .bulkbox summary::-webkit-details-marker{display:none}
+  #p6 .bulkbox summary:before{content:"▸";color:var(--accent);font-size:11px;transition:transform .15s}
+  #p6 .bulkbox[open] summary:before{transform:rotate(90deg)}
+  #p6 .bulkbox summary .cnt{font-size:12px;color:var(--muted);font-weight:400}
+  #p6 .bulkbox .hint{margin:0 0 8px}
+  #p6 .bulkbox textarea{width:100%;box-sizing:border-box}
+  #p6 .bulkpages{max-height:320px;overflow:auto;margin-top:8px;display:flex;flex-direction:column;gap:7px}
+  #p6 .bpage{border:1px solid var(--line);border-radius:9px;background:#fff;padding:7px 9px}
+  #p6 .bpage.done{border-color:#cfe3d5;background:#f7fbf8}
+  #p6 .bhead{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-bottom:4px}
+  #p6 .bhead b{color:#3b3630}
+  #p6 .bpage button{padding:2px 9px !important;font-size:12px !important}
+  #p6 .btxt{font-size:13px;line-height:1.7;letter-spacing:1px;color:#2b2823;word-break:break-all}
+  #p6 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:9px 0}
+  #p6 .row label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+  #p6 input[type=number],#p6 input[type=text]{font:inherit;font-size:13px;padding:5px 8px;
+    border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--text);width:72px;text-align:right}
+  #p6 input[type=text]{text-align:left;width:100%}
+  #p6 input:focus,#p6 select:focus,#p6 textarea:focus{outline:2px solid #f0cfc8;outline-offset:1px;
+    border-color:var(--accent)}
+  #p6 select{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);
+    border-radius:8px;background:#fff;color:var(--text)}
+  #p6 textarea{font:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;
+    background:#fff;color:var(--text);width:100%;resize:vertical;line-height:1.7}
+  #p6 button{font:inherit;font-size:13px;padding:6px 13px;border-radius:9px;border:1px solid var(--line);
+    background:#fff;color:var(--ink);cursor:pointer;transition:.14s;min-width:0}
+  #p6 button:hover:not(:disabled){border-color:#c9c0ae;background:#fbf8f2}
+  #p6 button:disabled{opacity:.45;cursor:default}
+  #p6 button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;
+    box-shadow:0 5px 14px -8px rgba(158,43,37,.95)}
+  #p6 button.primary:hover:not(:disabled){background:var(--accent2);border-color:var(--accent2)}
+  #p6 button.go{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:700;
+    box-shadow:0 5px 14px -8px rgba(31,107,74,.9)}
+  #p6 button.go:hover:not(:disabled){background:#17583c;border-color:#17583c}
+  #p6 button.ghost{background:#faf8f3;color:#4a453d}
+  #p6 button.danger{color:#a3302a}
+  #p6 .glyph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;
+    max-height:340px;overflow:auto;padding:2px;margin:10px 0}
+  #p6 .glyph-grid:empty::after{content:"字库是空的 —— 先导入一份奎享导出的 .gcode";
+    display:block;grid-column:1/-1;color:#b3aca1;font-size:12.5px;text-align:center;padding:22px 0}
+  #p6 .g{position:relative;border:1px solid var(--line);border-radius:10px;background:#fffdf8;
+    padding:4px 4px 3px;text-align:center;transition:.12s}
+  #p6 .g:hover{border-color:#c9c0ae}
+  #p6 .g.sel{border-color:var(--accent);box-shadow:0 0 0 2px #f7dfd9 inset}
+  #p6 .g canvas{display:block;width:68px;height:68px;margin:0 auto;background:#fffdf8}
+  #p6 .g .gch{width:100%;text-align:center;border:none;border-top:1px solid #f0ece3;border-radius:0;
+    font-size:12.5px;padding:2px 0 1px;background:transparent}
+  #p6 .g .gch:focus{outline:none;background:#fdf1ee}
+  #p6 .g .idx{position:absolute;left:4px;top:3px;font-size:9.5px;color:#c0b9ad}
+
+  #p6 .params{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:9px 12px;
+    background:#fcfaf5;border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin:10px 0}
+  #p6 .params .fld{display:flex;align-items:center;justify-content:space-between;gap:6px;
+    font-size:12.5px;color:var(--muted);margin:0;min-width:0}
+  #p6 .params .fld>span{white-space:nowrap;flex:0 0 auto}
+  #p6 .params .fld input[type=number]{width:72px;flex:0 0 auto}
+  #p6 .params .fld select{flex:1 1 auto;min-width:0;max-width:124px;padding-right:3px}
+  #p6 .preview-wrap{background:#f1eee7;border:1px solid var(--line);border-radius:11px;padding:12px;
+    display:flex;justify-content:center;margin:10px 0}
+  #p6 canvas#cv{display:block;background:#fffdf8;box-shadow:0 3px 14px -8px rgba(40,32,20,.6);
+    border-radius:2px;max-width:100%}
+  #p6 .stats{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:2px 0 10px}
+  #p6 .stats b{color:var(--ink);font-weight:700}
+  #p6 .actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end;margin-top:0}
+  #p6 .actions button{min-width:0}
+  #p6 .warnline{font-size:12.5px;color:#b45309;background:var(--warnbg);border:1px solid #ecdcbb;
+    border-radius:9px;padding:7px 10px;margin:0 0 10px}
+  #p6 .hint{font-size:12px;color:var(--muted);margin:0}
+
+  /* 提示条 */
+  #wzToast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:#232220;color:#fff;font-size:13px;padding:9px 18px;border-radius:10px;
+    opacity:0;pointer-events:none;transition:.22s;z-index:9999;max-width:80vw}
+  #wzToast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <div class="lockup">
+      <div class="seal">书</div>
+      <div class="names">
+        <div class="nm"><span class="lat">Redchen</span><span class="cn">书法机器人</span></div>
+        <div class="mdl">天工书画一代<span class="en">TIANGONG SHUHUI · GEN 1</span></div>
+      </div>
+    </div>
+    <div class="by">By<b>孙红晨</b></div>
+  </div>
+
+  <header>
+    <div>
+      <h1>工作台 · 一条流程走到底</h1>
+      <p class="sub" id="subline">图片 → 二值化 → 转笔画 → 2×4 拼版 → 蘸墨 → 导出 .gcode → 连串口直接书写 ｜ 全程本地运行，图片不上传</p>
+    </div>
+  </header>
+
+  <div class="modebar" id="modeBar">
+    <button type="button" data-mode="img" class="on">
+      <b>图片路线</b><span>图片 → 二值化 → 转笔画 → 拼版蘸墨 → 书写</span>
+    </button>
+    <button type="button" data-mode="word">
+      <b>文字路线（字库排版）</b><span>奎享导出的字 → 字模库 → 排整页 → 书写</span>
+    </button>
+  </div>
+
+  <div class="stepper" id="stepper">
+    <button data-step="1" class="active"><span class="num">1</span><span>图片 &amp; 二值化</span></button>
+    <button data-step="2"><span class="num">2</span><span>转笔画 G 代码</span></button>
+    <button data-step="3"><span class="num">3</span><span>2×4 拼版</span></button>
+    <button data-step="4"><span class="num">4</span><span>蘸墨 &amp; 导出</span></button>
+    <button data-step="5"><span class="num">5</span><span>连接 &amp; 书写</span></button>
+  </div>
+  <div class="stepper" id="stepperW" style="display:none">
+    <button data-step="6" class="active"><span class="num">1</span><span>字库 &amp; 排版</span></button>
+    <button data-step="5"><span class="num">2</span><span>连接 &amp; 书写</span></button>
+  </div>
+
+  <!-- ================= 步骤 1 ================= -->
+  <section class="panel on" id="p1">
+    <div class="grid">
+      <div class="card">
+        <h3>① 拖入图片</h3>
+        <p class="hint">PNG / JPG / WebP / BMP。超过 1400 像素或 220 万像素会自动等比缩小，导入更快也更稳。</p>
+        <div class="drop" id="imgDrop">
+          <svg class="di" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="16" rx="2.5"/>
+            <circle cx="8.5" cy="9.5" r="1.6"/>
+            <path d="M21 16l-4.5-4.5L9 19"/>
+          </svg>
+          把图片拖到这里，或 <b>点击选择图片</b><br>
+          <span id="imgInfo" style="font-size:12.5px">—</span>
+        </div>
+        <div class="cvbox">
+          <p class="cvlab">二值化结果（黑 = 机器人要画的地方）</p>
+          <canvas id="binCv" width="640" height="300"></canvas>
+        </div>
+        <div class="actions">
+          <button class="btn" id="toStep2" disabled>下一步：转笔画 →</button>
+        </div>
+        <div class="status" id="st1"></div>
+      </div>
+
+      <div class="card">
+        <h3>二值化参数</h3>
+        <p class="hint">干净扫描件、实心图案用 Otsu（默认）；手机拍的有阴影，勾「光照归一化」再换 Sauvola。</p>
+
+        <div class="rows">
+          <div class="row"><label>算法</label>
+            <select id="bmethod">
+              <option value="otsu" selected>Otsu 全局</option>
+              <option value="fixed">固定阈值</option>
+              <option value="bradley">局部均值</option>
+              <option value="niblack">Niblack</option>
+              <option value="sauvola">Sauvola</option>
+              <option value="wolf">Wolf–Jolion</option>
+              <option value="bernsen">Bernsen</option>
+              <option value="dither">误差抖动</option>
+            </select>
+          </div>
+          <div class="row pd" data-need="threshold"><label>阈值</label>
+            <div class="valwrap"><input type="number" id="bthr" value="128" min="0" max="255" step="1"></div>
+          </div>
+          <div class="row pd" data-need="block"><label>邻域窗口（奇数）</label>
+            <div class="valwrap"><input type="number" id="bblock" value="31" min="3" max="201" step="2"></div>
+          </div>
+          <div class="row pd" data-need="k"><label>灵敏度 k</label>
+            <div class="valwrap"><input type="number" id="bk" value="0.2" min="-1" max="1" step="0.01"></div>
+          </div>
+          <div class="row pd" data-need="kn"><label>灵敏度 kn</label>
+            <div class="valwrap"><input type="number" id="bkn" value="-0.2" min="-1" max="1" step="0.01"></div>
+          </div>
+          <div class="row pd" data-need="C"><label>偏移量 C</label>
+            <div class="valwrap"><input type="number" id="bC" value="10" min="-40" max="40" step="1"></div>
+          </div>
+          <div class="row pd" data-need="contrast"><label>对比度门限</label>
+            <div class="valwrap"><input type="number" id="bcon" value="15" min="1" max="120" step="1"></div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+        <div class="grp">前置校正</div>
+        <div class="sev">
+          <label><input type="checkbox" id="pNorm"> 光照归一化（消除阴影，最有效）</label>
+          <label><input type="checkbox" id="pStretch"> 对比度拉伸（2%–98% 分位）</label>
+          <label><input type="checkbox" id="pBlur"> 高斯预模糊（压纸纹噪点）</label>
+        </div>
+
+        <div class="sep"></div>
+        <div class="grp">后置去噪</div>
+        <div class="sev">
+          <label><input type="checkbox" id="pMedian"> 中值去噪（3×3）</label>
+          <label><input type="checkbox" id="pClose"> 闭运算填孔（补笔划小白洞）</label>
+          <label><input type="checkbox" id="pSmall"> 清除小连通块</label>
+        </div>
+        <div class="rows" style="margin-top:8px">
+          <div class="row"><label>最小保留面积（像素²）</label>
+            <div class="valwrap"><input type="number" id="pMinArea" value="20" min="1" step="1"></div>
+          </div>
+          <div class="row"><label>反色（黑底白字）</label>
+            <div class="valwrap"><input type="checkbox" id="pInvert"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 步骤 2 ================= -->
+  <section class="panel" id="p2">
+    <div class="grid">
+      <div class="card">
+        <h3>② 抽笔画预览</h3>
+        <p class="hint">机器会一条条按这些笔画描过去。黑线 = 落笔走的位置。这里的放大缩小只是看图，不影响实际尺寸。</p>
+        <div class="zbar">
+          <button class="zbtn" id="zvOut" title="缩小">−</button>
+          <span class="zval" id="zvVal">100%</span>
+          <button class="zbtn" id="zvIn" title="放大">+</button>
+          <button class="zbtn w" id="zvFit" title="回到 100%">适应</button>
+          <span class="zhint">滚轮缩放 · 拖动平移 · 双击复位</span>
+        </div>
+        <canvas id="stCv" width="640" height="320"></canvas>
+        <div class="actions">
+          <button class="btn ghost" data-goto="1">← 上一步</button>
+          <button class="btn" id="addPiece" disabled>加入拼版槽位 →</button>
+        </div>
+        <div class="status" id="st2"></div>
+      </div>
+
+      <div class="card">
+        <h3>描线方式</h3>
+        <div class="modes">
+          <label><input type="radio" name="mode" value="center" checked><span>中线</span></label>
+          <label><input type="radio" name="mode" value="outline"><span>轮廓</span></label>
+          <label><input type="radio" name="mode" value="solid"><span>实心</span></label>
+        </div>
+        <p class="hint" id="modeHint"></p>
+
+        <div class="grp">成品尺寸</div>
+        <div class="rows">
+          <div class="row"><label>锁定</label>
+            <div class="valwrap"><select id="sizeLock">
+              <option value="w" selected>按宽度</option>
+              <option value="h">按高度</option>
+            </select></div>
+          </div>
+          <div class="row"><label>成品宽度 (mm)</label>
+            <div class="valwrap"><input type="number" id="widthMm" value="100" min="2" max="2000" step="1"></div>
+          </div>
+          <div class="row"><label>成品高度 (mm)</label>
+            <div class="valwrap"><input type="number" id="heightMm" value="100" min="2" max="2000" step="1"></div>
+          </div>
+          <div class="row"><label>缩放比例 (%)</label>
+            <div class="valwrap"><input type="number" id="scalePct" value="100" min="5" max="2000" step="1"></div>
+          </div>
+        </div>
+        <p class="sub2">宽、高、百分比三个框互相对得上，改哪个都行（长宽比按原图，不会拉变形）。100% = 原图按 254dpi 的尺寸，1 像素 ≈ 0.1mm。</p>
+
+        <div class="sep"></div>
+        <div class="grp">描线细节</div>
+        <div class="rows">
+          <div class="row pd2" data-only="center outline"><label>忽略小于（像素²）</label>
+            <div class="valwrap"><input type="number" id="minArea2" value="20" min="1" step="1"></div>
+          </div>
+          <div class="row pd2" data-only="center outline"><label>平滑线条</label>
+            <div class="valwrap"><input type="checkbox" id="smooth2" checked></div>
+          </div>
+          <div class="row pd2" data-only="solid"><label>每行多少毫米（笔头直径）</label>
+            <div class="valwrap"><input type="number" id="spacing" value="5" min="0.5" max="40" step="0.5"></div>
+          </div>
+          <div class="row pd2" data-only="solid"><label>填充方向</label>
+            <div class="valwrap"><select id="fillDir"><option value="h" selected>横向</option><option value="v">纵向</option></select></div>
+          </div>
+          <div class="row pd2" data-only="solid"><label>忽略短于（像素）</label>
+            <div class="valwrap"><input type="number" id="minRun" value="2" min="1" step="1"></div>
+          </div>
+        </div>
+
+        <div class="note" id="tip2"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 步骤 3 ================= -->
+  <section class="panel" id="p3">
+    <div class="grid">
+      <div class="card">
+        <h3>③ 拼版：2 行 × 4 列</h3>
+        <p class="hint">每格标好「字」还是「画」，用各自的下压力度。空格会被跳过，后面自动补位。</p>
+        <div class="slots" id="slots"></div>
+        <div class="actions">
+          <button class="btn ghost" data-goto="2">← 回去再加一张</button>
+          <button class="btn ghost" id="clearSlots">清空全部</button>
+          <button class="btn" id="toStep4">下一步：蘸墨 →</button>
+        </div>
+        <div class="status" id="st3"></div>
+      </div>
+
+      <div class="card">
+        <h3>版式与力度</h3>
+        <div class="rows">
+          <div class="row"><label>整体缩放倍率</label>
+            <div class="valwrap"><input type="number" id="scale" value="1" min="0.2" max="3" step="0.05"></div>
+          </div>
+          <div class="row"><label>列间距 (mm)</label>
+            <div class="valwrap"><input type="number" id="colGap" value="10" min="0" step="1"></div>
+          </div>
+          <div class="row"><label>行间距 (mm)</label>
+            <div class="valwrap"><input type="number" id="rowGap" value="10" min="0" step="1"></div>
+          </div>
+          <div class="sep"></div>
+          <div class="grp">写字 / 作画力度（下压 Z）</div>
+          <div class="row"><label>字 · 下压 Z（重）</label>
+            <div class="valwrap"><input type="number" id="textDownZ" value="5" step="0.5"></div>
+          </div>
+          <div class="row"><label>画 · 下压 Z（轻）</label>
+            <div class="valwrap"><input type="number" id="drawDownZ" value="3" step="0.5"></div>
+          </div>
+          <div class="sep"></div>
+          <div class="grp">墨盘避让</div>
+          <div class="row"><label>墨盘中心到边缘 (mm)</label>
+            <div class="valwrap"><input type="number" id="dishRadius" value="40" min="0" step="1"></div>
+          </div>
+        </div>
+        <div class="note">墨盘固定在原点 (0,0)。整版内容会自动右移到墨盘边缘外，避免第一笔就画在墨盘上。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 步骤 4 ================= -->
+  <section class="panel" id="p4">
+    <div class="grid">
+      <div class="card">
+        <h3>④ 成品预览 &amp; 导出</h3>
+        <canvas id="finCv" width="640" height="320"></canvas>
+        <div class="actions">
+          <button class="btn ghost" data-goto="3">← 回拼版</button>
+          <button class="btn" id="runAll">生成最终 G 代码</button>
+        </div>
+        <div class="status" id="st4"></div>
+        <div id="outBox" class="hidden">
+          <a class="dl" id="dl" download>下载 .gcode</a>
+          <pre id="codePre"></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>蘸墨设置</h3>
+        <p class="hint">墨盘坐标填墨盘实际位置，不是画纸上的位置。</p>
+        <div class="rows">
+          <div class="row"><label>墨盘 X (mm)</label>
+            <div class="valwrap"><input type="number" id="inkX" value="100" step="1"></div>
+          </div>
+          <div class="row"><label>墨盘 Y (mm)</label>
+            <div class="valwrap"><input type="number" id="inkY" value="100" step="1"></div>
+          </div>
+          <div class="row"><label>每画满多少毫米蘸一次</label>
+            <div class="valwrap"><input type="number" id="every" value="400" min="20" step="10"></div>
+          </div>
+          <div class="row"><label>蘸墨落笔 Z</label>
+            <div class="valwrap"><input type="number" id="inkZ" value="5" step="0.5"></div>
+          </div>
+          <div class="row"><label>蘸墨停留（秒，0=不插 G4）</label>
+            <div class="valwrap"><input type="number" id="dwell" value="0.8" min="0" step="0.1"></div>
+          </div>
+          <div class="sep"></div>
+          <div class="grp">刮墨</div>
+          <label class="chk"><input type="checkbox" id="scrapeOn" checked> 蘸墨后刮掉多余墨水</label>
+          <div class="rows" id="scrapeBox" style="margin-top:8px">
+            <div class="row"><label>先移开多远 (mm)</label>
+              <div class="valwrap"><input type="number" id="moveDist" value="30" min="0" step="1"></div>
+            </div>
+            <div class="row"><label>移开方向</label>
+              <div class="valwrap"><select id="moveDir">
+                <option value="right" selected>向右 +X</option><option value="left">向左 -X</option>
+                <option value="down">向下 +Y</option><option value="up">向上 -Y</option></select></div>
+            </div>
+            <div class="row"><label>刮墨滑动方向</label>
+              <div class="valwrap"><select id="scrapeDir">
+                <option value="right" selected>向右 +X</option><option value="left">向左 -X</option>
+                <option value="down">向下 +Y</option><option value="up">向上 -Y</option></select></div>
+            </div>
+            <div class="row"><label>滑动距离 (mm)</label>
+              <div class="valwrap"><input type="number" id="scrapeDist" value="20" min="1" step="1"></div>
+            </div>
+            <div class="row"><label>来回次数</label>
+              <div class="valwrap"><input type="number" id="scrapePasses" value="2" min="1" step="1"></div>
+            </div>
+            <div class="row"><label>刮墨下压 Z</label>
+              <div class="valwrap"><input type="number" id="scrapeZ" value="5" step="0.5"></div>
+            </div>
+          </div>
+          <div class="sep"></div>
+          <div class="grp">机器参数（步进电机模式）</div>
+          <div class="row"><label>抬笔 Z</label>
+            <div class="valwrap"><input type="number" id="penUpZ" value="0" step="0.5"></div>
+          </div>
+          <div class="row"><label>F 速度</label>
+            <div class="valwrap"><input type="number" id="feed" value="10000" step="100"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 步骤 5 ================= -->
+  <section class="panel" id="p5">
+    <div class="grid">
+      <div class="card">
+        <div class="serhead">
+          <span class="dot" id="serDot"></span>
+          <h3>⑤ 书写预览 &amp; 进度</h3>
+          <span class="chip" id="serState">未连接</span>
+          <span class="chip" id="serPos">X 0.0　Y 0.0　Z 0.0</span>
+        </div>
+        <p class="hint">灰线 = 待写轨迹，红线 = 已写部分，蓝色十字 = 机器当前坐标（来自控制器状态回报，不是估算）。</p>
+        <canvas id="wrCv" width="640" height="320"></canvas>
+
+        <div class="bar"><i id="wrBar"></i></div>
+        <div class="tline"><span>进度</span><b id="wrPct">0%　0 / 0 行</b></div>
+        <div class="tline"><span>预计时间</span><b id="wrEta">—</b></div>
+        <div class="tline"><span>已用时间</span><b id="wrUsed">0:00</b></div>
+
+        <div class="actions">
+          <button class="btn ghost" data-goto="4">← 回蘸墨</button>
+          <button class="btn" id="wrStart">书写</button>
+          <button class="btn ghost" id="wrPause" disabled>暂停</button>
+          <button class="btn ghost" id="wrStop" disabled>终止</button>
+        </div>
+        <div class="status" id="st5"></div>
+      </div>
+
+      <div class="stack">
+        <div class="card">
+          <h3>连接</h3>
+          <div class="fld">
+            <label class="flab">串口</label>
+            <div class="frow">
+              <select id="portSel"><option value="">—</option></select>
+              <button class="btn ghost sm" id="portPick">选择</button>
+            </div>
+          </div>
+          <div class="row" style="margin-bottom:10px"><label>波特率</label>
+            <div class="valwrap"><select id="baudSel">
+              <option>115200</option><option>57600</option><option>38400</option>
+              <option>19200</option><option>9600</option></select></div>
+          </div>
+          <div class="actions" style="justify-content:stretch">
+            <button class="btn" id="serConn" style="flex:1 1 auto;min-width:0">连接</button>
+          </div>
+          <div class="note" style="margin-top:10px">浏览器不给 COM 编号：第一次点「选择」，在系统弹窗里挑 <b>COM12</b>，之后它会出现在下拉里。串口是独占的——<b>用网页写字时先关掉奎享雕刻</b>。</div>
+        </div>
+
+        <div class="card">
+          <h3>控制</h3>
+          <div class="jogpad">
+            <button data-cmd="home">机械原点</button>
+            <button data-jog="0,1">Y+</button>
+            <button data-cmd="zero">设置原点</button>
+            <button data-jog="-1,0">X−</button>
+            <button class="mid" disabled>◇</button>
+            <button data-jog="1,0">X+</button>
+            <button data-cmd="reset">复位</button>
+            <button data-jog="0,-1">Y−</button>
+            <button data-cmd="motoroff">关闭电机</button>
+          </div>
+          <div class="rows">
+            <div class="row"><label>点动距离 (mm)</label>
+              <div class="valwrap"><input type="number" id="jogDist" value="1" step="0.5" min="0.1"></div>
+            </div>
+            <div class="row"><label>点动速度 (mm/min)</label>
+              <div class="valwrap"><input type="number" id="jogSpeed" value="10000" step="500"></div>
+            </div>
+          </div>
+          <div class="actions serbtn3" style="margin-top:12px">
+            <button class="btn ghost sm" id="penUp">抬笔</button>
+            <button class="btn ghost sm" id="penDown">落笔</button>
+            <button class="btn ghost sm" id="unlock">解除警报</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>书写</h3>
+          <div class="fileline">
+            <span class="fname" id="wrFile">未载入（默认用第 4 步结果）</span>
+            <button class="btn ghost sm" id="wrOpen">打开文件</button>
+            <button class="btn ghost sm" id="wrClear">清除</button>
+          </div>
+          <p class="hint" style="margin:0 0 6px">也可以直接打开奎享雕刻导出的 .gcode / .nc —— 用它自己的字库和排版生成，再回到这里连机器书写。</p>
+          <div class="logbox" id="serLog"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 步骤 ⑥：字库排版（文字路线） ================= -->
+  <section class="panel" id="p6">
+    <div class="wzgrid">
+
+      <!-- 左：字模库 -->
+      <div class="wzcard">
+        <h2>① 字模库 <span class="cnt" id="libCnt"></span></h2>
+
+        <div class="drop" id="drop">
+          <button id="pickFile" class="primary">导入奎享 G 代码</button>
+          <p>奎享里「写字 → 笔记」或「书画 → 单笔字」导出 .gcode，选进来（可多选）；也可以把文件直接拖到这块。</p>
+        </div>
+        <input type="file" id="gfile" accept=".gcode,.nc,.ngc,.txt" multiple hidden>
+
+        <details class="bulkbox" id="bulkBox">
+          <summary>批量建库 <span class="cnt" id="bulkCnt">把要写的字一次备齐</span></summary>
+          <p class="hint">把要写的文字整段粘进来，页面拆出其中<b>不重复的字</b>、按每页 N 个分页。<br>
+            每页文字复制到奎享里排一版、导出 .gcode（<b>任务名就用这段文字</b>），再把导出的文件选进上面的导入区——字模和名字会自动对上，不用一个个打。</p>
+          <textarea id="bulkTxt" rows="3" placeholder="例：永和九年岁在癸丑暮春之初会于会稽山阴之兰亭"></textarea>
+          <div class="row">
+            <label>每页字数 <input type="number" id="bulkPer" value="60" min="10" max="200" step="10"></label>
+            <button id="bulkGo" class="ghost">拆字分页</button>
+          </div>
+          <div id="bulkStat" class="hint" style="margin:0"></div>
+          <div id="bulkPages" class="bulkpages"></div>
+        </details>
+
+        <div class="row">
+          <label>切分阈值 <input type="number" id="splitMm" value="6" step="0.5" min="0.2" max="80"> mm</label>
+          <button id="btnResplit" class="ghost" disabled title="只对本次导入的文件有效">重新切分</button>
+          <button id="btnWhole" class="ghost" disabled title="整份文件当一个字模">整版当一个字</button>
+        </div>
+        <p class="hint" style="margin:-2px 0 8px">阈值 = 笔画靠多近才算同一个字。调到<b>每张缩略图正好是一个字</b>：黏成一块就调小，拆碎了就调大。</p>
+
+        <div class="row">
+          <input type="text" id="quickName" placeholder="顺序命名：如 飞入菜花无处寻">
+          <button id="btnName" class="ghost">套用</button>
+        </div>
+
+        <div id="glyphs" class="glyph-grid"></div>
+
+        <div class="row">
+          <button id="btnSelNone" class="ghost">全不选</button>
+          <button id="btnMergeSel" class="ghost" disabled>合并选中</button>
+          <button id="btnDelSel" class="ghost danger" disabled>删除选中</button>
+        </div>
+
+        <div class="row" style="border-top:1px dashed var(--line);padding-top:10px;margin-top:12px">
+          <button id="btnExportLib" class="ghost">备份字库</button>
+          <button id="btnImportLib" class="ghost">恢复字库</button>
+          <button id="btnClearLib" class="ghost danger">清空</button>
+          <input type="file" id="libfile" accept=".json" hidden>
+        </div>
+        <p class="hint" style="margin:6px 0 0">字库存在浏览器本地（localStorage），换浏览器或清缓存会丢，<b>建议定期点「备份字库」存成 .json</b>。</p>
+      </div>
+
+      <!-- 右：排版 -->
+      <div class="wzcard">
+        <h2>② 笔记排版</h2>
+
+        <textarea id="txt" rows="4" placeholder="输入要写的文字。&#10;一行 = 一行（横排）或 一列（竖排），换行会另起一行。例：&#10;飞入菜花无处寻"></textarea>
+
+        <div class="params">
+          <div class="fld"><span>纸宽</span><input type="number" id="pW" value="150" step="1"></div>
+          <div class="fld"><span>纸高</span><input type="number" id="pH" value="260" step="1"></div>
+          <div class="fld"><span>字高</span><input type="number" id="pFont" value="10" step="0.5"></div>
+          <div class="fld"><span>字距</span><input type="number" id="pWord" value="1" step="0.5"></div>
+          <div class="fld"><span>行距</span><input type="number" id="pLine" value="3" step="0.5"></div>
+          <div class="fld"><span>上边距</span><input type="number" id="pTop" value="5" step="1"></div>
+          <div class="fld"><span>左边距</span><input type="number" id="pLeft" value="5" step="1"></div>
+          <div class="fld"><span>右边距</span><input type="number" id="pRight" value="5" step="1"></div>
+          <div class="fld"><span>方向</span>
+            <select id="pDir"><option value="h">横排</option><option value="v">竖排</option></select></div>
+          <div class="fld"><span>对齐</span>
+            <select id="pAlign"><option value="center">居中</option><option value="left">靠边</option></select></div>
+          <div class="fld"><span>手写抖动</span><input type="number" id="pJit" value="0" step="5" min="0" max="100"></div>
+          <div class="fld"><span>落笔 Z</span><input type="number" id="pDownZ" value="5" step="0.5"></div>
+          <div class="fld"><span>抬笔 Z</span><input type="number" id="pUpZ" value="0" step="0.5"></div>
+          <div class="fld"><span>F 速度</span><input type="number" id="pFeed" value="10000" step="500"></div>
+        </div>
+
+        <div id="warnline" class="warnline" style="display:none"></div>
+        <div class="preview-wrap"><canvas id="cv"></canvas></div>
+        <div id="stats" class="stats"></div>
+
+        <div class="actions">
+          <button id="btnExport" class="primary">导出 .gcode</button>
+          <button id="btnCopy" class="ghost">复制代码</button>
+          <button id="btnToWB" class="go">送去书写 →</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <input type="file" id="imgFile" accept="image/*" hidden>
+  <input type="file" id="gcodeFile" accept=".gcode,.nc,.tap,.txt,.gco" hidden>
+  <div id="wzToast"></div>
+
+  <footer class="pagefoot">
+    <span>Redchen 书法机器人 · 天工书画一代</span>
+    <span class="dot">·</span>
+    <span>By 孙红晨</span>
+    <span class="dot">·</span>
+    <span>本地离线运行</span>
+  </footer>
+</div>
+
+<div class="busy" id="busy">
+  <div class="busy-box">
+    <div class="ring"></div>
+    <div class="bt" id="busyText">处理中…</div>
+    <div class="bs">图片越大越慢，请稍候</div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   书法机器人工作台 · 合并版
+   1) 二值化引擎   2) 笔画提取   3) G 代码生成/拼版/蘸墨   4) 界面
+   ===================================================================== */
+
+/* ======================= 1. 二值化引擎 ======================= */
+
+function toGray(imgData){
+  var d = imgData.data, n = imgData.width * imgData.height, g = new Uint8Array(n);
+  for(var i=0,p=0;i<n;i++,p+=4){ g[i] = (0.299*d[p] + 0.587*d[p+1] + 0.114*d[p+2] + 0.5) | 0; }
+  return g;
+}
+
+function integral(gray, w, h){
+  var W = w+1, s = new Float64Array(W*(h+1)), q = new Float64Array(W*(h+1));
+  for(var y=0;y<h;y++){
+    var rs=0, rq=0, yo=(y+1)*W, yp=y*W;
+    for(var x=0;x<w;x++){
+      var v = gray[y*w+x];
+      rs += v; rq += v*v;
+      s[yo+x+1] = s[yp+x+1] + rs;
+      q[yo+x+1] = q[yp+x+1] + rq;
+    }
+  }
+  return {s:s, q:q, W:W};
+}
+
+function gaussBlur(g, w, h, rad){
+  var k = rad === 1 ? [1,2,1] : [1,4,6,4,1];
+  var kn = 0; for(var z=0;z<k.length;z++) kn += k[z];
+  var tmp = new Uint8Array(w*h), out = new Uint8Array(w*h), r = rad, x, y, d;
+  for(y=0;y<h;y++) for(x=0;x<w;x++){
+    var acc = 0;
+    for(d=-r;d<=r;d++){ var xx = x+d; if(xx<0) xx=0; else if(xx>=w) xx=w-1; acc += g[y*w+xx]*k[d+r]; }
+    tmp[y*w+x] = (acc/kn)|0;
+  }
+  for(y=0;y<h;y++) for(x=0;x<w;x++){
+    var acc2 = 0;
+    for(d=-r;d<=r;d++){ var yy = y+d; if(yy<0) yy=0; else if(yy>=h) yy=h-1; acc2 += tmp[yy*w+x]*k[d+r]; }
+    out[y*w+x] = (acc2/kn)|0;
+  }
+  return out;
+}
+
+function normalizeBg(g, w, h, strength){
+  var it = integral(g, w, h), s = it.s, W = it.W;
+  var r = Math.max(10, Math.round(Math.min(w,h)/8));
+  var out = new Uint8Array(w*h), a = strength/100;
+  for(var y=0;y<h;y++){
+    var y0 = y-r<0?0:y-r, y1 = y+r+1>h?h:y+r+1, y0W = y0*W, y1W = y1*W;
+    for(var x=0;x<w;x++){
+      var x0 = x-r<0?0:x-r, x1 = x+r+1>w?w:x+r+1;
+      var area = (y1-y0)*(x1-x0);
+      var sum = s[y1W+x1] - s[y0W+x1] - s[y1W+x0] + s[y0W+x0];
+      var bg = Math.max(8, sum/area);
+      var v = g[y*w+x]/bg*205;
+      if(v>255) v = 255;
+      var i = y*w+x;
+      out[i] = g[i]*(1-a) + v*a + 0.5;
+    }
+  }
+  return out;
+}
+
+function stretchContrast(g, w, h){
+  var hist = new Int32Array(256), i;
+  for(i=0;i<g.length;i++) hist[g[i]]++;
+  var total = g.length, cut = total*0.02, lo = 0, hi = 255, acc = 0;
+  for(i=0;i<256;i++){ acc += hist[i]; if(acc>=cut){ lo=i; break; } }
+  acc = 0;
+  for(i=255;i>=0;i--){ acc += hist[i]; if(acc>=cut){ hi=i; break; } }
+  if(hi-lo < 8) return g;
+  var out = new Uint8Array(g.length), scale = 255/(hi-lo);
+  for(i=0;i<g.length;i++){
+    var v = (g[i]-lo)*scale;
+    if(v<0) v=0; else if(v>255) v=255;
+    out[i] = v+0.5;
+  }
+  return out;
+}
+
+function preprocess(gray, w, h, o){
+  var g = gray;
+  if(o.blur) g = gaussBlur(g, w, h, 1);
+  if(o.norm) g = normalizeBg(g, w, h, o.normStrength);
+  if(o.stretch) g = stretchContrast(g, w, h);
+  return g;
+}
+
+function otsu(gray){
+  var hist = new Float64Array(256), i;
+  for(i=0;i<gray.length;i++) hist[gray[i]]++;
+  var total = gray.length, sum = 0;
+  for(i=0;i<256;i++) sum += i*hist[i];
+  var sumB=0, wB=0, best=0, thr=127;
+  for(i=0;i<256;i++){
+    wB += hist[i];
+    if(wB===0) continue;
+    var wF = total-wB;
+    if(wF===0) break;
+    sumB += i*hist[i];
+    var mB = sumB/wB, mF = (sum-sumB)/wF;
+    var between = wB*wF*(mB-mF)*(mB-mF);
+    if(between>best){ best = between; thr = i; }
+  }
+  return thr;
+}
+
+function slidingMinMax(g, w, h, r){
+  r = Math.max(0, Math.min(r, w-1, h-1));
+  var minH = new Uint8Array(w*h), maxH = new Uint8Array(w*h);
+  var mn = new Uint8Array(w*h), mx = new Uint8Array(w*h);
+  var cap = Math.max(w,h)+2, qmin = new Int32Array(cap), qmax = new Int32Array(cap);
+  var x, y;
+  for(y=0;y<h;y++){
+    var base = y*w, hmin=0, tmin=0, hmax=0, tmax=0;
+    for(x=0;x<w;x++){
+      var add = x+r;
+      if(add<w){
+        var va = g[base+add];
+        while(tmin>hmin && g[base+qmin[tmin-1]] >= va) tmin--;
+        qmin[tmin++] = add;
+        while(tmax>hmax && g[base+qmax[tmax-1]] <= va) tmax--;
+        qmax[tmax++] = add;
+      }
+      var rem = x-r-1;
+      if(rem>=0){
+        if(hmin<tmin && qmin[hmin]===rem) hmin++;
+        if(hmax<tmax && qmax[hmax]===rem) hmax++;
+      }
+      minH[base+x] = g[base+qmin[hmin]];
+      maxH[base+x] = g[base+qmax[hmax]];
+    }
+  }
+  for(x=0;x<w;x++){
+    var hmin2=0, tmin2=0, hmax2=0, tmax2=0;
+    for(y=0;y<h;y++){
+      var add2 = y+r;
+      if(add2<h){
+        var vb = minH[add2*w+x], vc = maxH[add2*w+x];
+        while(tmin2>hmin2 && minH[qmin[tmin2-1]*w+x] >= vb) tmin2--;
+        qmin[tmin2++] = add2;
+        while(tmax2>hmax2 && maxH[qmax[tmax2-1]*w+x] <= vc) tmax2--;
+        qmax[tmax2++] = add2;
+      }
+      var rem2 = y-r-1;
+      if(rem2>=0){
+        if(hmin2<tmin2 && qmin[hmin2]===rem2) hmin2++;
+        if(hmax2<tmax2 && qmax[hmax2]===rem2) hmax2++;
+      }
+      mn[y*w+x] = minH[qmin[hmin2]*w+x];
+      mx[y*w+x] = maxH[qmax[hmax2]*w+x];
+    }
+  }
+  return {min:mn, max:mx};
+}
+
+function localAlgo(gray, w, h, block, param, mode){
+  var it = integral(gray, w, h), s = it.s, q = it.q, W = it.W;
+  var out = new Uint8Array(w*h), r = Math.max(1, (block/2)|0), Mmin = 255, i;
+  if(mode === 'wolf'){ for(i=0;i<gray.length;i++) if(gray[i]<Mmin) Mmin = gray[i]; }
+  for(var y=0;y<h;y++){
+    var y0 = y-r<0?0:y-r, y1 = y+r+1>h?h:y+r+1, y0W = y0*W, y1W = y1*W;
+    for(var x=0;x<w;x++){
+      var x0 = x-r<0?0:x-r, x1 = x+r+1>w?w:x+r+1;
+      var area = (y1-y0)*(x1-x0);
+      var ssum = s[y1W+x1] - s[y0W+x1] - s[y1W+x0] + s[y0W+x0];
+      var mean = ssum/area, t;
+      if(mode === 'mean'){
+        t = mean - param;
+      } else {
+        var qsum = q[y1W+x1] - q[y0W+x1] - q[y1W+x0] + q[y0W+x0];
+        var varr = qsum/area - mean*mean;
+        if(varr<0) varr = 0;
+        var std = Math.sqrt(varr);
+        if(mode === 'niblack') t = mean + param*std;
+        else if(mode === 'sauvola') t = mean*(1 + param*(std/128 - 1));
+        else t = mean + param*(std/128 - 1)*(mean - Mmin);
+      }
+      out[y*w+x] = gray[y*w+x] >= t ? 255 : 0;   // 与原工具的「墨迹 = 灰度 < 阈值」对齐
+    }
+  }
+  return out;
+}
+
+function bernsen(gray, w, h, block, contrastThr){
+  var r = Math.max(1, (block/2)|0), mm = slidingMinMax(gray, w, h, r);
+  var mn = mm.min, mx = mm.max, out = new Uint8Array(w*h);
+  for(var i=0;i<out.length;i++){
+    var lo = mn[i], hi = mx[i];
+    if(hi-lo < contrastThr) out[i] = 255;
+    else out[i] = gray[i] >= (lo+hi)*0.5 ? 255 : 0;
+  }
+  return out;
+}
+
+function floydSteinberg(gray, w, h, thr){
+  var buf = Float32Array.from(gray), out = new Uint8Array(w*h);
+  for(var y=0;y<h;y++) for(var x=0;x<w;x++){
+    var i = y*w+x, old = buf[i], nv = old < thr ? 0 : 255;
+    out[i] = nv;
+    var err = old-nv;
+    if(x+1<w) buf[i+1] += err*7/16;
+    if(y+1<h){
+      var b = i+w;
+      if(x>0) buf[b-1] += err*3/16;
+      buf[b] += err*5/16;
+      if(x+1<w) buf[b+1] += err*1/16;
+    }
+  }
+  return out;
+}
+
+function binarize(gray, w, h, method, o){
+  var mask, thr = null, i;
+  // 阈值下限保护：纯黑白图（只有 0/255）算出的 Otsu 阈值会是 0，
+  // 按「墨迹 = 灰度 < 阈值」就一笔都抽不出来。夹到 1~254 保证至少有一类落在墨迹侧。
+  function clampThr(t){ return t < 1 ? 1 : (t > 254 ? 254 : t); }
+  switch(method){
+    case 'fixed':
+      thr = clampThr(o.threshold);
+      mask = new Uint8Array(w*h);
+      for(i=0;i<mask.length;i++) mask[i] = gray[i] >= thr ? 255 : 0;   // 灰度 >= 阈值 判为白
+      break;
+    case 'otsu':
+      thr = clampThr(otsu(gray));
+      mask = new Uint8Array(w*h);
+      for(i=0;i<mask.length;i++) mask[i] = gray[i] >= thr ? 255 : 0;   // 灰度 >= 阈值 判为白
+      break;
+    case 'bradley': mask = localAlgo(gray, w, h, o.block, o.C, 'mean'); break;
+    case 'niblack': mask = localAlgo(gray, w, h, o.block, o.kn, 'niblack'); break;
+    case 'sauvola': mask = localAlgo(gray, w, h, o.block, o.k, 'sauvola'); break;
+    case 'wolf':    mask = localAlgo(gray, w, h, o.block, o.k, 'wolf'); break;
+    case 'bernsen': mask = bernsen(gray, w, h, o.block, o.contrast); break;
+    case 'dither':
+      thr = clampThr(o.threshold);
+      mask = floydSteinberg(gray, w, h, thr);
+      break;
+    default:
+      mask = new Uint8Array(w*h); mask.fill(255);
+  }
+  return {mask: mask, thr: thr};
+}
+
+function medianMask(mask, w, h){
+  var out = new Uint8Array(mask.length);
+  for(var y=0;y<h;y++) for(var x=0;x<w;x++){
+    var dark = 0;
+    for(var dy=-1;dy<=1;dy++){
+      var yy = y+dy;
+      if(yy<0||yy>=h) continue;
+      var base = yy*w;
+      for(var dx=-1;dx<=1;dx++){
+        var xx = x+dx;
+        if(xx<0||xx>=w) continue;
+        if(mask[base+xx] === 0) dark++;
+      }
+    }
+    out[y*w+x] = dark >= 5 ? 0 : 255;
+  }
+  return out;
+}
+
+function closeMask(mask, w, h){
+  var dil = new Uint8Array(mask), i, x, y;
+  for(y=1;y<h-1;y++) for(x=1;x<w-1;x++){
+    i = y*w+x;
+    if(mask[i] === 0) continue;
+    if(mask[i-1]===0 || mask[i+1]===0 || mask[i-w]===0 || mask[i+w]===0 ||
+       mask[i-w-1]===0 || mask[i-w+1]===0 || mask[i+w-1]===0 || mask[i+w+1]===0) dil[i] = 0;
+  }
+  var ero = new Uint8Array(dil);
+  for(y=1;y<h-1;y++) for(x=1;x<w-1;x++){
+    i = y*w+x;
+    if(dil[i] === 255) continue;
+    if(dil[i-1]===255 || dil[i+1]===255 || dil[i-w]===255 || dil[i+w]===255 ||
+       dil[i-w-1]===255 || dil[i-w+1]===255 || dil[i+w-1]===255 || dil[i+w+1]===255) ero[i] = 255;
+  }
+  return ero;
+}
+
+function removeSmall(mask, w, h, minArea){
+  var out = new Uint8Array(mask), seen = new Uint8Array(w*h);
+  var stack = new Int32Array(w*h), members = new Int32Array(w*h);
+  for(var i=0;i<mask.length;i++){
+    if(mask[i] !== 0 || seen[i]) continue;
+    var sp = 0, cnt = 0;
+    stack[sp++] = i; seen[i] = 1;
+    while(sp>0){
+      var p = stack[--sp];
+      members[cnt++] = p;
+      var x = p % w, y = (p/w)|0;
+      if(x>0   && mask[p-1]===0 && !seen[p-1]){ seen[p-1]=1; stack[sp++]=p-1; }
+      if(x<w-1 && mask[p+1]===0 && !seen[p+1]){ seen[p+1]=1; stack[sp++]=p+1; }
+      if(y>0   && mask[p-w]===0 && !seen[p-w]){ seen[p-w]=1; stack[sp++]=p-w; }
+      if(y<h-1 && mask[p+w]===0 && !seen[p+w]){ seen[p+w]=1; stack[sp++]=p+w; }
+    }
+    if(cnt < minArea) for(var k=0;k<cnt;k++) out[members[k]] = 255;
+  }
+  return out;
+}
+
+function postprocess(mask, w, h, o){
+  var m = mask;
+  if(o.close) m = closeMask(m, w, h);
+  if(o.denoise) m = medianMask(m, w, h);
+  if(o.removeSmall && o.minArea > 0) m = removeSmall(m, w, h, o.minArea);
+  return m;
+}
+
+/* ======================= 2. 笔画提取 ======================= */
+
+var CDX = [1,1,0,-1,-1,-1,0,1];
+var CDY = [0,1,1,1,0,-1,-1,-1];
+
+function simplifyDP(pts, eps){
+  if(pts.length < 3) return pts;
+  /* 点特别多时先等距抽稀：DP 最坏是 O(n²)，实心块的长轮廓（几十万点）能卡几十秒。
+     控制在 2 万点以内，结果肉眼无差，速度回到毫秒级。 */
+  if(pts.length > 20000){
+    var step = Math.ceil(pts.length / 20000), thin = [], q;
+    for(q = 0; q < pts.length; q += step) thin.push(pts[q]);
+    if(thin[thin.length - 1] !== pts[pts.length - 1]) thin.push(pts[pts.length - 1]);
+    pts = thin;
+  }
+  var keep = new Uint8Array(pts.length);
+  keep[0] = 1; keep[pts.length-1] = 1;
+  var stack = [[0, pts.length-1]];
+  while(stack.length){
+    var r = stack.pop(), i0 = r[0], i1 = r[1];
+    if(i1 <= i0+1) continue;
+    var maxD = 0, maxI = -1, ax = pts[i0][0], ay = pts[i0][1], bx = pts[i1][0], by = pts[i1][1];
+    var dx = bx-ax, dy = by-ay, len2 = dx*dx + dy*dy;
+    for(var i=i0+1;i<i1;i++){
+      var d, t;
+      if(len2 === 0){ d = Math.abs(pts[i][0]-ax) + Math.abs(pts[i][1]-ay); }
+      else {
+        t = ((pts[i][0]-ax)*dx + (pts[i][1]-ay)*dy)/len2;
+        if(t<0) t=0; if(t>1) t=1;
+        var cx = ax+t*dx, cy = ay+t*dy;
+        d = Math.sqrt((pts[i][0]-cx)*(pts[i][0]-cx) + (pts[i][1]-cy)*(pts[i][1]-cy));
+      }
+      if(d > maxD){ maxD = d; maxI = i; }
+    }
+    if(maxD > eps){ keep[maxI] = 1; stack.push([i0,maxI],[maxI,i1]); }
+  }
+  var out = [];
+  for(var j=0;j<pts.length;j++) if(keep[j]) out.push(pts[j]);
+  return out;
+}
+
+function simplifyLoop(pts, eps){
+  if(pts.length < 6) return pts;
+  var n = pts.length, a = 0, b = 1, maxD = -1, i, j;
+  if(n <= 20000){
+    /* 点不多时保持原样：全对比较，结果和原版一字不差 */
+    for(i=0;i<n;i++) for(j=i+1;j<n;j++){
+      var dx0 = pts[i][0]-pts[j][0], dy0 = pts[i][1]-pts[j][1], d0 = dx0*dx0+dy0*dy0;
+      if(d0 > maxD){ maxD = d0; a = i; b = j; }
+    }
+  }else{
+    /* 超大闭合轮廓（实心块骨架）在全对比较下是 O(n²)，几十万点会直接把页面卡死。
+       改成两趟线性扫描：先找离 0 最远的点 a，再找离 a 最远的点 b，效果几乎一样。 */
+    for(i=0;i<n;i++){
+      var dx1 = pts[i][0]-pts[0][0], dy1 = pts[i][1]-pts[0][1], d1 = dx1*dx1+dy1*dy1;
+      if(d1 > maxD){ maxD = d1; a = i; }
+    }
+    maxD = -1;
+    for(i=0;i<n;i++){
+      var dx2 = pts[i][0]-pts[a][0], dy2 = pts[i][1]-pts[a][1], d2 = dx2*dx2+dy2*dy2;
+      if(d2 > maxD){ maxD = d2; b = i; }
+    }
+    if(b === a) b = (a + 1) % n;
+  }
+  var seg1 = [], seg2 = [];
+  for(i=0;i<n;i++){ var idx = (a+i)%n; seg1.push(pts[idx]); if(idx === b) break; }
+  for(i=0;i<n;i++){ var idx2 = (b+i)%n; seg2.push(pts[idx2]); if(idx2 === a) break; }
+  var s1 = simplifyDP(seg1, eps), s2 = simplifyDP(seg2, eps);
+  return s1.slice(0,-1).concat(s2.slice(0,-1));
+}
+
+function smoothOpen(pts, passes){
+  for(var k=0;k<passes;k++){
+    if(pts.length < 2) break;
+    var out = [[pts[0][0], pts[0][1]]];
+    for(var i=0;i<pts.length-1;i++){
+      var a = pts[i], b = pts[i+1];
+      out.push([a[0]*0.75+b[0]*0.25, a[1]*0.75+b[1]*0.25]);
+      out.push([a[0]*0.25+b[0]*0.75, a[1]*0.25+b[1]*0.75]);
+    }
+    out.push([pts[pts.length-1][0], pts[pts.length-1][1]]);
+    pts = out;
+  }
+  return pts;
+}
+
+function smoothLoop(pts, passes){
+  for(var k=0;k<passes;k++){
+    if(pts.length < 3) break;
+    var out = [], n = pts.length;
+    for(var i=0;i<n;i++){
+      var a = pts[i], b = pts[(i+1)%n];
+      out.push([a[0]*0.75+b[0]*0.25, a[1]*0.75+b[1]*0.25]);
+      out.push([a[0]*0.25+b[0]*0.75, a[1]*0.25+b[1]*0.75]);
+    }
+    pts = out;
+  }
+  return pts;
+}
+
+function simplifyStroke(st, eps, doSmooth){
+  var pts = st.closed ? simplifyLoop(st.pts, eps) : simplifyDP(st.pts, eps);
+  if(doSmooth) pts = st.closed ? smoothLoop(pts, 2) : smoothOpen(pts, 2);
+  return {pts: pts, closed: st.closed};
+}
+
+function strokeTopLeft(st){
+  var my = 1e9, mx = 1e9;
+  for(var i=0;i<st.pts.length;i++){
+    if(st.pts[i][1] < my || (st.pts[i][1] === my && st.pts[i][0] < mx)){ my = st.pts[i][1]; mx = st.pts[i][0]; }
+  }
+  return {y: my, x: mx};
+}
+
+function labelComponents(bin, W, H){
+  var N = W*H, lab = new Int32Array(N), nextId = 1, stack = new Int32Array(N), areas = [];
+  var bx = [], by = [];                    // 每个连通块「扫描序最靠前的边界像素」，供描轮廓直接定位
+  for(var p=0;p<N;p++){
+    if(bin[p] && !lab[p]){
+      var id = nextId++, area = 0, sp = 0, fx = -1, fy = -1, fq = 0;
+      stack[sp++] = p; lab[p] = id;
+      while(sp>0){
+        var q = stack[--sp]; area++;
+        var x = q % W, y = (q-x)/W;
+        if(fx < 0 || q < fq){
+          if(x===0 || x===W-1 || y===0 || y===H-1 ||
+             !bin[q-1] || !bin[q+1] || !bin[q-W] || !bin[q+W]){ fx = x; fy = y; fq = q; }
+        }
+        if(x>0   && bin[q-1] && !lab[q-1]){ lab[q-1]=id; stack[sp++]=q-1; }
+        if(x<W-1 && bin[q+1] && !lab[q+1]){ lab[q+1]=id; stack[sp++]=q+1; }
+        if(y>0   && bin[q-W] && !lab[q-W]){ lab[q-W]=id; stack[sp++]=q-W; }
+        if(y<H-1 && bin[q+W] && !lab[q+W]){ lab[q+W]=id; stack[sp++]=q+W; }
+      }
+      areas[id] = area; bx[id] = fx; by[id] = fy;
+    }
+  }
+  return {lab: lab, areas: areas, bx: bx, by: by, count: nextId-1};
+}
+
+function traceOutline(bin, W, H, sx, sy){
+  var BX = -1, BY = -1, d4 = [[1,0],[-1,0],[0,1],[0,-1]], f = false, i;
+  for(i=0;i<4 && !f;i++){
+    var nx = sx+d4[i][0], ny = sy+d4[i][1];
+    if(nx<0 || nx>=W || ny<0 || ny>=H || !bin[ny*W+nx]){ BX = nx; BY = ny; f = true; }
+  }
+  if(!f) return null;
+  var path = [], PX = sx, PY = sy, guard = 0;
+  while(true){
+    path.push([PX, PY]);
+    var bdx = BX-PX, bdy = BY-PY, si = -1, k;
+    for(i=0;i<8;i++) if(CDX[i]===bdx && CDY[i]===bdy){ si = i; break; }
+    if(si < 0) break;
+    var QX = -1, QY = -1, pi = -1;
+    for(k=0;k<8;k++){
+      var idx = (si+k)%8, nx2 = PX+CDX[idx], ny2 = PY+CDY[idx];
+      if(nx2>=0 && nx2<W && ny2>=0 && ny2<H && bin[ny2*W+nx2]){ QX = nx2; QY = ny2; pi = (si+k-1+8)%8; break; }
+    }
+    if(QX < 0) break;
+    BX = PX+CDX[pi]; BY = PY+CDY[pi];
+    PX = QX; PY = QY;
+    if(PX === sx && PY === sy) break;
+    if(guard++ > 200000) break;
+  }
+  return path;
+}
+
+function traceContours(bin, W, H, minArea){
+  var lc = labelComponents(bin, W, H), contours = [];
+  for(var id=1;id<=lc.count;id++){
+    if(lc.areas[id] < minArea) continue;
+    var sx = lc.bx[id], sy = lc.by[id];
+    if(sx < 0 || sy < 0) continue;
+    var loop = traceOutline(bin, W, H, sx, sy);
+    if(loop && loop.length >= 4) contours.push({pts: loop, closed: true});
+  }
+  return contours;
+}
+
+function zhangSuen(bin, W, H){
+  var skel = new Uint8Array(bin), changed = true, it = 0, n = new Int32Array(8);
+  while(changed){
+    changed = false;
+    for(var sub=0;sub<2;sub++){
+      var mark = [];
+      for(var y=1;y<H-1;y++) for(var x=1;x<W-1;x++){
+        var p = y*W+x;
+        if(!skel[p]) continue;
+        n[0]=skel[p+1]; n[1]=skel[p+W+1]; n[2]=skel[p+W]; n[3]=skel[p+W-1];
+        n[4]=skel[p-1]; n[5]=skel[p-W-1]; n[6]=skel[p-W]; n[7]=skel[p-W+1];
+        var B = 0, A = 0, k;
+        for(k=0;k<8;k++) B += n[k];
+        if(B < 2 || B > 6) continue;
+        for(k=0;k<8;k++) if(n[k] === 0 && n[(k+1)%8] === 1) A++;
+        if(A !== 1) continue;
+        if(sub === 0){ if(n[6]*n[0]*n[2] !== 0) continue; if(n[0]*n[2]*n[4] !== 0) continue; }
+        else { if(n[6]*n[0]*n[4] !== 0) continue; if(n[6]*n[2]*n[4] !== 0) continue; }
+        mark.push(p);
+      }
+      for(var i=0;i<mark.length;i++){ skel[mark[i]] = 0; changed = true; }
+    }
+    if(++it > 300) break;
+  }
+  return skel;
+}
+
+function nbOf(skel, W, H, p){
+  var x = p % W, y = (p-x)/W, o = [];
+  for(var i=0;i<8;i++){
+    var nx = x+CDX[i], ny = y+CDY[i];
+    if(nx>=0 && nx<W && ny>=0 && ny<H && skel[ny*W+nx]) o.push(ny*W+nx);
+  }
+  return o;
+}
+
+function branchCount(skel, W, H, p){
+  var ns = nbOf(skel, W, H, p), C = ns.length;
+  if(C === 0) return 0;
+  if(C === 1) return 1;
+  if(C === 2) return 2;
+  var comp = 0, used = {}, i, j;
+  for(i=0;i<C;i++){
+    if(used[i]) continue;
+    comp++;
+    var q = [i]; used[i] = true;
+    while(q.length){
+      var qi = q.pop();
+      for(j=0;j<C;j++){
+        if(used[j]) continue;
+        var ax = ns[qi] % W, ay = (ns[qi]-ax)/W, bx = ns[j] % W, by = (ns[j]-bx)/W;
+        if(Math.abs(ax-bx) <= 1 && Math.abs(ay-by) <= 1){ used[j] = true; q.push(j); }
+      }
+    }
+  }
+  return comp;
+}
+
+function nextPixel(skel, W, H, cur, prev){
+  var ns = nbOf(skel, W, H, cur);
+  if(ns.length === 0) return -1;
+  if(ns.length === 1) return (ns[0] === prev) ? -1 : ns[0];
+  var cx = cur % W, cy = (cur-cx)/W, px = prev % W, py = (prev-px)/W;
+  var dx = cx-px, dy = cy-py, best = -1, bestScore = -1e9;
+  for(var i=0;i<ns.length;i++){
+    if(ns[i] === prev) continue;
+    var nx = ns[i] % W, ny = (ns[i]-nx)/W, vx = nx-cx, vy = ny-cy;
+    var dot = vx*dx + vy*dy;
+    var ortho = (Math.abs(vx)+Math.abs(vy) === 1) ? 1 : 0;
+    var score = dot*2 + ortho;
+    if(score > bestScore){ bestScore = score; best = ns[i]; }
+  }
+  return best;
+}
+
+function pruneSpurs(skel, W, H, minLen){
+  var N = W*H, changed = true;
+  while(changed){
+    changed = false;
+    for(var p=0;p<N;p++){
+      if(!skel[p]) continue;
+      if(branchCount(skel, W, H, p) !== 1) continue;
+      var branch = [p], prev = p, cur = nbOf(skel, W, H, p)[0], guard = 0;
+      while(true){
+        branch.push(cur);
+        var d = branchCount(skel, W, H, cur);
+        if(d !== 2) break;
+        var nx = nextPixel(skel, W, H, cur, prev);
+        if(nx < 0) break;
+        prev = cur; cur = nx;
+        if(++guard > N) break;
+      }
+      if(branch.length < minLen){
+        for(var i=0;i<branch.length;i++) skel[branch[i]] = 0;
+        changed = true;
+      }
+    }
+  }
+  return skel;
+}
+
+function traceStrokes(skel, W, H){
+  var N = W*H, p, i, deg = new Int32Array(N);
+  for(p=0;p<N;p++) if(skel[p]) deg[p] = branchCount(skel, W, H, p);
+  var visited = new Uint8Array(N), strokes = [];
+
+  function chain(p0, n0){
+    var pts = [[p0 % W, (p0 - p0 % W)/W]], prev = p0, cur = n0, guard = 0;
+    while(true){
+      var x = cur % W, y = (cur-x)/W;
+      pts.push([x, y]);
+      if(deg[cur] !== 2) break;
+      visited[cur] = 1;
+      var nx = nextPixel(skel, W, H, cur, prev);
+      if(nx < 0) break;
+      prev = cur; cur = nx;
+      if(++guard > N) break;
+    }
+    return pts;
+  }
+
+  for(p=0;p<N;p++){
+    if(deg[p] !== 1) continue;
+    var ns = nbOf(skel, W, H, p);
+    if(visited[ns[0]]) continue;
+    var pts = chain(p, ns[0]);
+    if(pts.length >= 2) strokes.push({pts: pts, closed: false});
+  }
+  for(p=0;p<N;p++){
+    if(deg[p] < 3) continue;
+    var ns2 = nbOf(skel, W, H, p);
+    for(i=0;i<ns2.length;i++){
+      if(visited[ns2[i]] || deg[ns2[i]] >= 3) continue;
+      var pts2 = chain(p, ns2[i]);
+      if(pts2.length >= 2) strokes.push({pts: pts2, closed: false});
+    }
+  }
+  for(p=0;p<N;p++){
+    if(!skel[p] || visited[p]) continue;
+    if(deg[p] !== 2) continue;
+    var startNs = nbOf(skel, W, H, p);
+    if(startNs.length < 2) continue;
+    var pts3 = [[p % W, (p - p % W)/W]];
+    visited[p] = 1;
+    var prev = p, cur = startNs[0], guard = 0;
+    while(cur !== p){
+      var x3 = cur % W, y3 = (cur-x3)/W;
+      pts3.push([x3, y3]);
+      visited[cur] = 1;
+      var nx3 = nextPixel(skel, W, H, cur, prev);
+      if(nx3 < 0) break;
+      prev = cur; cur = nx3;
+      if(++guard > N) break;
+    }
+    if(pts3.length >= 4) strokes.push({pts: pts3, closed: true});
+  }
+  return strokes;
+}
+
+function filterByArea(bin, W, H, minArea){
+  var lc = labelComponents(bin, W, H), out = new Uint8Array(W*H);
+  for(var p=0;p<W*H;p++){
+    if(bin[p] && lc.areas[lc.lab[p]] >= minArea) out[p] = 1;
+  }
+  return out;
+}
+
+function serpentineHorizontal(bin, W, H, step, minRun){
+  var paths = [], cur = null, prevY = -1e9;
+  for(var k=0;;k++){
+    var y = Math.round(k*step);
+    if(y >= H) break;
+    var rr = [], x = 0;
+    while(x < W){
+      while(x < W && !bin[y*W+x]) x++;
+      if(x >= W) break;
+      var x1 = x;
+      while(x < W && bin[y*W+x]) x++;
+      if(x-x1 >= minRun) rr.push([x1, x-1]);
+    }
+    if(rr.length === 0) continue;
+    var order = (k % 2 === 0) ? rr : rr.slice().reverse();
+    for(var j=0;j<order.length;j++){
+      var r = order[j];
+      var sx = (k % 2 === 0) ? r[0] : r[1];
+      var ex = (k % 2 === 0) ? r[1] : r[0];
+      var connect = (cur !== null) && (j === 0) && (y - prevY <= step + 0.5);
+      if(!connect){
+        if(cur) paths.push(cur);
+        cur = [[sx, y], [ex, y]];
+      } else {
+        cur.push([sx, y], [ex, y]);
+      }
+      prevY = y;
+    }
+  }
+  if(cur) paths.push(cur);
+  return paths;
+}
+
+function serpentinePaths(bin, W, H, step, horizontal, minRun){
+  if(horizontal) return serpentineHorizontal(bin, W, H, step, minRun);
+  var bt = new Uint8Array(W*H);
+  for(var y=0;y<H;y++) for(var x=0;x<W;x++) bt[x*H+y] = bin[y*W+x];
+  var p = serpentineHorizontal(bt, H, W, step, minRun);
+  return p.map(function(path){
+    return path.map(function(pt){ return [pt[1], pt[0]]; });
+  });
+}
+
+/* ======================= 3. G 代码 / 拼版 / 蘸墨 ======================= */
+
+function getXY(line){
+  var m = line.match(/X(-?[0-9.]+)Y(-?[0-9.]+)/);
+  return m ? {x: Number(m[1]), y: Number(m[2])} : null;
+}
+function isHomeLine(line){ return line.indexOf("G90G0") >= 0 && line.indexOf("X0Y0") >= 0; }
+function stripTrailing(lines){
+  var out = [];
+  for(var i=0;i<lines.length;i++){ if(isHomeLine(lines[i])) break; out.push(lines[i]); }
+  return out;
+}
+function boundingBox(lines){
+  var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, any = false;
+  for(var i=0;i<lines.length;i++){
+    var p = getXY(lines[i]);
+    if(p){ any = true; if(p.x<minX) minX=p.x; if(p.x>maxX) maxX=p.x; if(p.y<minY) minY=p.y; if(p.y>maxY) maxY=p.y; }
+  }
+  return any ? {minX:minX, maxX:maxX, minY:minY, maxY:maxY} : null;
+}
+function shiftXY(line, dx, dy){
+  var m = line.match(/X(-?[0-9.]+)Y(-?[0-9.]+)/);
+  if(!m) return line;
+  var x = Number(m[1])+dx, y = Number(m[2])+dy;
+  return line.replace(/X-?[0-9.]+Y-?[0-9.]+/, "X"+x.toFixed(3)+"Y"+y.toFixed(3));
+}
+function normalizeDownZ(line, penUpZ, writeDownZ){
+  if(line.indexOf("G1") < 0) return line;
+  if(line.indexOf("X") >= 0 || line.indexOf("Y") >= 0) return line;
+  var m = line.match(/Z(-?[0-9.]+)/);
+  if(!m) return line;
+  if(Number(m[1]) === penUpZ) return line;
+  return line.replace(/Z-?[0-9.]+/, "Z"+writeDownZ.toFixed(1));
+}
+
+function mergeGrid(bodies, opts){
+  var scale = opts.scale, colGap = opts.colGap, rowGap = opts.rowGap;
+  var penUpZ = opts.penUpZ, dishRadius = opts.dishRadius, cols = 4, i;
+
+  function scaleBody(lines, bb, s){
+    if(s === 1) return lines;
+    return lines.map(function(l){
+      var m = l.match(/X(-?[0-9.]+)Y(-?[0-9.]+)/);
+      if(!m) return l;
+      var x = bb.minX + (Number(m[1])-bb.minX)*s;
+      var y = bb.minY + (Number(m[2])-bb.minY)*s;
+      return l.replace(/X-?[0-9.]+Y-?[0-9.]+/, "X"+x.toFixed(3)+"Y"+y.toFixed(3));
+    });
+  }
+
+  var items = [];
+  for(i=0;i<bodies.length;i++){
+    var body = stripTrailing(bodies[i].lines);
+    var bb = boundingBox(body);
+    if(!bb) continue;
+    var scaled = scaleBody(body, bb, scale);
+    items.push({bb: boundingBox(scaled), lines: scaled, downZ: bodies[i].downZ});
+  }
+  if(!items.length) throw new Error("这些内容里没找到 X/Y 坐标，可能不是奎享导出的 G 代码。");
+
+  var colW = [0,0,0,0], rowH = [0,0], k;
+  for(k=0;k<items.length;k++){
+    var krow = Math.floor(k/cols), kcol = k % cols;
+    var w = items[k].bb.maxX - items[k].bb.minX;
+    var h = items[k].bb.maxY - items[k].bb.minY;
+    if(w > colW[kcol]) colW[kcol] = w;
+    if(h > rowH[krow]) rowH[krow] = h;
+  }
+  var colX = [0,0,0,0], rowY = [0,0], c, r;
+  for(c=1;c<cols;c++) colX[c] = colX[c-1] + colW[c-1] + colGap;
+  for(r=1;r<2;r++) rowY[r] = rowY[r-1] + rowH[r-1] + rowGap;
+
+  var out = [];
+  for(var j=0;j<items.length;j++){
+    var it = items[j];
+    var row = Math.floor(j/cols), col = j % cols;
+    var iw = it.bb.maxX-it.bb.minX, ih = it.bb.maxY-it.bb.minY;
+    var targetX = colX[col] + (colW[col]-iw)/2;
+    var targetY = rowY[row] + (rowH[row]-ih)/2;
+    var dx = targetX - it.bb.minX, dy = targetY - it.bb.minY;
+    for(var m=0;m<it.lines.length;m++){
+      out.push(normalizeDownZ(shiftXY(it.lines[m], dx, dy), penUpZ, it.downZ));
+    }
+  }
+
+  var mb = boundingBox(out);
+  if(mb && dishRadius !== undefined && dishRadius > mb.minX){
+    var shiftX = dishRadius - mb.minX;
+    out = out.map(function(l){ return shiftXY(l, shiftX, 0); });
+  }
+  out.push("G90G0 X0Y0");
+  return out;
+}
+
+function addInk(text, opts){
+  var inkX = opts.inkX, inkY = opts.inkY, inkZ = opts.inkZ, inkUpZ = opts.inkUpZ;
+  var dwell = opts.dwell, every = opts.every, penUpZ = opts.penUpZ, feed = opts.feed;
+  var scrape = opts.scrape, scrapeDir = opts.scrapeDir, scrapeDist = opts.scrapeDist;
+  var scrapeZ = opts.scrapeZ, scrapePasses = opts.scrapePasses;
+  var moveDir = opts.moveDir, moveDist = opts.moveDist;
+  var downZSet = opts.downZSet && opts.downZSet.length ? opts.downZSet : [opts.penDownZ];
+
+  var lines = text.split(/\r?\n/), out = [];
+  var pen = 0, px = 0, py = 0, have = false, total = 0, pending = false, hold = false, inkCount = 0;
+
+  function dist(x1,y1,x2,y2){ var dx = x2-x1, dy = y2-y1; return Math.sqrt(dx*dx+dy*dy); }
+  function offset(dir, d){
+    if(dir === "left") return [-d, 0];
+    if(dir === "down") return [0, d];
+    if(dir === "up") return [0, -d];
+    return [d, 0];
+  }
+  function emit(tx, ty){
+    out.push("G0 X"+inkX.toFixed(3)+"Y"+inkY.toFixed(3)+"F"+feed);
+    out.push("G1G90 Z"+inkZ.toFixed(1)+"F"+feed);
+    if(dwell > 0) out.push("G4 P"+dwell.toFixed(2));
+    out.push("G1G90 Z"+inkUpZ.toFixed(1)+"F"+feed);
+    if(scrape){
+      var mv = offset(moveDir, moveDist);
+      var sx = inkX+mv[0], sy = inkY+mv[1];
+      var sl = offset(scrapeDir, scrapeDist);
+      var ex = sx+sl[0], ey = sy+sl[1];
+      var passes = (scrapePasses >= 1) ? Math.floor(scrapePasses) : 1;
+      out.push("G0 X"+sx.toFixed(3)+"Y"+sy.toFixed(3)+"F"+feed);
+      out.push("G1G90 Z"+scrapeZ.toFixed(1)+"F"+feed);
+      for(var p=0;p<passes;p++){
+        var tox = (p % 2 === 0) ? ex : sx;
+        var toy = (p % 2 === 0) ? ey : sy;
+        out.push("G1 X"+tox.toFixed(3)+"Y"+toy.toFixed(3)+"F"+feed);
+      }
+      out.push("G1G90 Z"+inkUpZ.toFixed(1)+"F"+feed);
+    }
+    out.push("G0 X"+tx.toFixed(3)+"Y"+ty.toFixed(3)+"F"+feed);
+  }
+
+  for(var i=0;i<lines.length;i++){
+    var line = lines[i].replace(/\r$/, "");
+    if(hold){
+      hold = false;
+      var mh = line.match(/X(-?[0-9.]+)Y(-?[0-9.]+)/);
+      var isHome = mh && (Number(mh[1]) === 0) && (Number(mh[2]) === 0);
+      if(!isHome){
+        emit(mh ? Number(mh[1]) : px, mh ? Number(mh[2]) : py);
+        inkCount++;
+      }
+    }
+    var mz = line.match(/Z(-?[0-9.]+)/);
+    if(mz){
+      var z = Number(mz[1]);
+      if(z === penUpZ){
+        out.push(line);
+        if(pending){ hold = true; pending = false; total = 0; }
+        pen = 0;
+        continue;
+      }
+      if(downZSet.indexOf(z) >= 0){ pen = 1; out.push(line); continue; }
+    }
+    var mxy = line.match(/X(-?[0-9.]+)Y(-?[0-9.]+)/);
+    if(mxy){
+      var x = Number(mxy[1]), y = Number(mxy[2]);
+      if(pen === 1){
+        if(have){ total += dist(px, py, x, y); if(total >= every) pending = true; }
+        px = x; py = y; have = true;
+      } else { px = x; py = y; have = true; }
+    }
+    out.push(line);
+  }
+  return {text: out.join("\r\n"), inkCount: inkCount};
+}
+
+/* ======================= 4. 界面 ======================= */
+
+var $ = function(id){ return document.getElementById(id); };
+function num(id){ var v = Number($(id).value); return isNaN(v) ? 0 : v; }
+function chk(id){ return $(id).checked; }
+
+var S = {
+  imgName: "", W: 0, H: 0, gray: null, ink: null, thr: null,
+  strokes: null, mode: "center",
+  pieces: [null,null,null,null,null,null,null,null],
+  finalText: "", inkCount: 0
+};
+
+/* ---------- 路线 & 步骤切换 ----------
+   img  = 图片路线：1 图片 → 2 笔画 → 3 拼版 → 4 蘸墨 → 5 书写
+   word = 文字路线：6 字库排版 → 5 书写（第 5 步两条路线共用）           */
+var MODE = "img";
+var ORDER = {img: [1,2,3,4,5], word: [6,5]};
+var SUBTXT = {
+  img: "图片 → 二值化 → 转笔画 → 2×4 拼版 → 蘸墨 → 导出 .gcode → 连串口直接书写 ｜ 全程本地运行，图片不上传",
+  word: "奎享导出的 .gcode → 自动拆成字模库 → 输入文字排整页 → 导出或直接连串口书写 ｜ 字库存在本机浏览器里，不用再开奎享"
+};
+
+function goStep(n){
+  for(var i=1;i<=6;i++){ var el = $("p"+i); if(el) el.classList.toggle("on", i === n); }
+  var ord = ORDER[MODE] || ORDER.img, cur = ord.indexOf(n);
+  var btns = document.querySelectorAll("#stepper button, #stepperW button");
+  for(var j=0;j<btns.length;j++){
+    var s = Number(btns[j].getAttribute("data-step"));
+    var k = ord.indexOf(s);
+    btns[j].classList.toggle("active", s === n);
+    btns[j].classList.toggle("done", k >= 0 && cur >= 0 && k < cur);
+  }
+  window.scrollTo({top:0, behavior:"smooth"});
+  if(n === 2 && strokeDirty) runStrokes();
+  if(n === 3) renderSlots();
+  if(n === 5){
+    /* 文字路线进书写：自动把当前排版结果载进第 5 步（正在书写时不打断） */
+    if(MODE === "word" && window.WZ && !SER.writing){
+      var wg = WZ.gcode();
+      if(wg && wg !== SER.text) loadGcode(wg, "字库排版");
+    }
+    enterWriteStep();
+  }
+  syncBackBtn();
+}
+
+function syncBackBtn(){
+  var b = document.querySelector("#p5 .actions [data-goto]");
+  if(!b) return;
+  if(MODE === "word"){ b.setAttribute("data-goto", "6"); b.textContent = "← 回字库排版"; }
+  else { b.setAttribute("data-goto", "4"); b.textContent = "← 回蘸墨"; }
+}
+
+function setMode(m){
+  if(MODE === m) return;
+  MODE = m;
+  Array.prototype.forEach.call(document.querySelectorAll("#modeBar button"), function(b){
+    b.classList.toggle("on", b.getAttribute("data-mode") === m);
+  });
+  $("stepper").style.display = (m === "img") ? "" : "none";
+  $("stepperW").style.display = (m === "word") ? "" : "none";
+  var sl = $("subline"); if(sl) sl.textContent = SUBTXT[m];
+  goStep(m === "img" ? 1 : 6);
+};
+Array.prototype.forEach.call(document.querySelectorAll("#modeBar button"), function(b){
+  b.addEventListener("click", function(){ setMode(b.getAttribute("data-mode")); });
+});
+function onStepClick(e){
+  var b = e.target.closest("button");
+  if(!b) return;
+  var n = Number(b.getAttribute("data-step"));
+  if(MODE === "img"){
+    if(n === 2 && !S.ink) return;
+    if((n === 3 || n === 4) && !hasPieces()) return;
+  }
+  goStep(n);
+}
+document.getElementById("stepper").addEventListener("click", onStepClick);
+document.getElementById("stepperW").addEventListener("click", onStepClick);
+Array.prototype.forEach.call(document.querySelectorAll("[data-goto]"), function(b){
+  b.addEventListener("click", function(){ goStep(Number(b.getAttribute("data-goto"))); });
+});
+
+/* ---------- 参数持久化 ---------- */
+var PKEY = "shufa_workbench_v1";
+var pids = ["bmethod","bthr","bblock","bk","bkn","bC","bcon","pNorm","pStretch","pBlur",
+  "pMedian","pClose","pSmall","pMinArea","pInvert","widthMm","heightMm","scalePct","sizeLock",
+  "minArea2","smooth2","spacing",
+  "fillDir","minRun","scale","colGap","rowGap","textDownZ","drawDownZ","dishRadius",
+  "inkX","inkY","every","inkZ","dwell","scrapeOn","moveDist","moveDir","scrapeDir","scrapeDist",
+  "scrapePasses","scrapeZ","penUpZ","feed","jogDist","jogSpeed","baudSel"];
+
+function saveParams(){
+  var o = {};
+  pids.forEach(function(id){
+    var el = $(id); if(!el) return;
+    o[id] = (el.type === "checkbox") ? el.checked : el.value;
+  });
+  try{ localStorage.setItem(PKEY, JSON.stringify(o)); }catch(e){}
+}
+function loadParams(){
+  var raw = null;
+  try{ raw = localStorage.getItem(PKEY); }catch(e){}
+  if(!raw) return;
+  try{
+    var o = JSON.parse(raw);
+    pids.forEach(function(id){
+      var el = $(id); if(!el || !(id in o)) return;
+      if(el.type === "checkbox") el.checked = !!o[id];
+      else el.value = o[id];
+    });
+  }catch(e){}
+}
+pids.forEach(function(id){
+  var el = $(id); if(!el) return;
+  el.addEventListener("change", function(){ saveParams(); onParamChange(id); });
+});
+loadParams();
+applyLock();   // 只按「锁定」决定哪个框只读；宽高空载时还不知道比例，等图片进来再算
+
+var IMG_PARAMS = ["bmethod","bthr","bblock","bk","bkn","bC","bcon","pNorm","pStretch","pBlur",
+                  "pMedian","pClose","pSmall","pMinArea","pInvert"];
+var STROKE_PARAMS = ["widthMm","minArea2","smooth2","spacing","fillDir","minRun"];
+
+/* 只有影响像素/笔画的参数才需要重算，拼版和蘸墨参数改了不必重算 */
+function onParamChange(id){
+  if(IMG_PARAMS.indexOf(id) >= 0) scheduleBin();
+  else if(STROKE_PARAMS.indexOf(id) >= 0) scheduleStrokes();
+}
+
+/* ---------- 图片载入 ---------- */
+function readyImg(){ return !!S.gray; }
+var workCv = document.createElement("canvas");
+var MAX_SIDE = 1400, MAX_PIXELS = 2.2e6;   // 超过就缩小：主线程逐像素处理，太大必卡
+var busyTimer = null;
+
+function paint(){ return new Promise(function(r){ requestAnimationFrame(function(){ setTimeout(r, 0); }); }); }
+
+function setBusy(on, text){
+  var el = $("busy");
+  if(on){
+    $("busyText").textContent = text || "处理中…";
+    el.classList.add("on");
+  } else {
+    el.classList.remove("on");
+  }
+}
+
+/* 用 createImageBitmap 解码：解码在浏览器后台线程完成，不阻塞页面 */
+function decodeImage(file){
+  if(window.createImageBitmap){
+    return createImageBitmap(file, { imageOrientation: "from-image" })
+      .catch(function(){ return createImageBitmap(file); });
+  }
+  return new Promise(function(res, rej){
+    var img = new Image(), url = URL.createObjectURL(file);
+    img.onload = function(){ URL.revokeObjectURL(url); res(img); };
+    img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("decode failed")); };
+    img.src = url;
+  });
+}
+
+async function loadImageFile(file){
+  if(!file) return;
+  var isImg = /^image\//.test(file.type || "") || /\.(png|jpe?g|webp|bmp|gif|avif)$/i.test(file.name);
+  if(!isImg){ $("imgInfo").textContent = "这不是图片文件。"; return; }
+
+  S.imgName = file.name.replace(/\.[^.]+$/, "");
+  $("imgInfo").textContent = "正在读取 " + file.name + " …";
+  $("toStep2").disabled = true;
+  setBusy(true, "正在解码图片…");
+  await paint();
+
+  var t0 = performance.now();
+  try{
+    var bmp = await decodeImage(file);
+    var nw = bmp.width, nh = bmp.height;
+    var s = Math.min(1, MAX_SIDE/Math.max(nw, nh), Math.sqrt(MAX_PIXELS/(nw*nh)));
+    var W = Math.max(1, Math.round(nw*s)), H = Math.max(1, Math.round(nh*s));
+    S.W = W; S.H = H;
+
+    workCv.width = W; workCv.height = H;
+    var ctx = workCv.getContext("2d", { willReadFrequently: true });
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(bmp, 0, 0, W, H);
+    if(bmp.close) bmp.close();
+
+    S.gray = toGray(ctx.getImageData(0, 0, W, H));
+    S.finalText = null;
+
+    $("busyText").textContent = "正在二值化…";
+    await paint();
+    recomputeBin();                 // 只做二值化（快），笔画留到第 2 步再算
+    strokeDirty = true;
+    S.strokes = null;
+    ZV = { z:1, x:0, y:0 };          // 换图后预览回到 100%
+    drawStrokes([]);                // 清掉上一张图残留的预览
+    syncSize("w");                  // 高度、百分比按新图比例重算
+    $("addPiece").disabled = true;
+    $("st2").innerHTML = "图片已就绪，进入第 2 步时自动抽笔画。";
+
+    var ms = Math.round(performance.now() - t0);
+    var shrunk = (W !== nw || H !== nh);
+    $("imgInfo").innerHTML = '<span class="ok">✓</span> ' + file.name
+      + "（" + (shrunk ? nw + "×" + nh + " → " : "") + W + "×" + H + "，用时 " + ms + " ms）";
+    $("toStep2").disabled = false;
+  }catch(err){
+    $("imgInfo").innerHTML = '<span class="err">图片读取失败</span>，换个文件试试（建议 JPG / PNG）。';
+  }finally{
+    setBusy(false);
+  }
+}
+
+$("imgDrop").addEventListener("click", function(){ $("imgFile").click(); });
+$("imgFile").addEventListener("change", function(){ if(this.files.length) loadImageFile(this.files[0]); });
+["dragover","dragenter"].forEach(function(ev){
+  $("imgDrop").addEventListener(ev, function(e){ e.preventDefault(); this.classList.add("over"); });
+});
+["dragleave","drop"].forEach(function(ev){
+  $("imgDrop").addEventListener(ev, function(e){ e.preventDefault(); this.classList.remove("over"); });
+});
+$("imgDrop").addEventListener("drop", function(e){
+  if(e.dataTransfer.files.length) loadImageFile(e.dataTransfer.files[0]);
+});
+
+/* 拖到页面其他位置时阻止浏览器直接打开文件——那会让当前页面被图片顶掉，看起来像「卡死」 */
+window.addEventListener("dragover", function(e){
+  if(e.target.closest && e.target.closest("#imgDrop")) return;
+  e.preventDefault();
+});
+window.addEventListener("drop", function(e){
+  if(e.target.closest && e.target.closest("#imgDrop")) return;
+  e.preventDefault();
+});
+
+/* ---------- 二值化 ---------- */
+var binTimer = null, binRunning = false;
+
+function activeStep(){
+  for(var i=1;i<=5;i++) if($("p"+i).classList.contains("on")) return i;
+  return 1;
+}
+
+function scheduleBin(){
+  if(!S.gray) return;
+  if(binTimer) clearTimeout(binTimer);
+  binTimer = setTimeout(function(){ binTimer = null; runBin(); }, 240);
+}
+
+async function runBin(){
+  if(!S.gray || binRunning) return;
+  binRunning = true;
+  setBusy(true, "正在二值化…");
+  await paint();
+  try{ recomputeBin(); strokeDirty = true; }
+  finally{ binRunning = false; setBusy(false); }
+  if(activeStep() === 2) runStrokes();
+}
+
+function recomputeBin(){
+  if(!S.gray) return;
+  var W = S.W, H = S.H;
+  var g = preprocess(S.gray, W, H, {
+    blur: chk("pBlur"), norm: chk("pNorm"), normStrength: 70, stretch: chk("pStretch")
+  });
+  var r = binarize(g, W, H, $("bmethod").value, {
+    threshold: num("bthr"), block: Math.max(3, num("bblock") | 1),
+    k: num("bk"), kn: num("bkn"), C: num("bC"), contrast: num("bcon")
+  });
+  var mask = postprocess(r.mask, W, H, {
+    close: chk("pClose"), denoise: chk("pMedian"),
+    removeSmall: chk("pSmall"), minArea: num("pMinArea")
+  });
+  var invert = chk("pInvert"), ink = new Uint8Array(W*H), dark = 0;
+  for(var i=0;i<W*H;i++){
+    var isInk = invert ? (mask[i] !== 0) : (mask[i] === 0);
+    ink[i] = isInk ? 1 : 0;
+    if(isInk) dark++;
+  }
+  S.ink = ink;
+  S.thr = r.thr;
+  drawBin(ink);
+  var pct = dark/(W*H)*100;
+  var warn = "";
+  if(dark === 0){
+    warn = "　<b style='color:#b45309'>⚠ 一个墨迹像素都没检出</b>：换个算法、关掉反色，或把阈值往中间调。";
+  } else if(pct > 96){
+    warn = "　<b style='color:#b45309'>⚠ 几乎全黑</b>：可能是反色设反了，或阈值太低。";
+  }
+  $("st1").innerHTML = "处理像素 <b>" + W + "×" + H + "</b>，黑色占比 <b>" + pct.toFixed(1) + "%</b>"
+    + (r.thr !== null ? "，实际阈值 <b>" + r.thr + "</b>" : "") + warn;
+  $("toStep2").disabled = false;
+  updateParamVis();
+}
+
+function updateParamVis(){
+  var method = $("bmethod").value;
+  var need = {otsu:"", fixed:"threshold", bradley:"block C", niblack:"block kn",
+    sauvola:"block k", wolf:"block k", bernsen:"block contrast", dither:"threshold"}[method] || "";
+  var rows = document.querySelectorAll("#p1 .pd");
+  for(var i=0;i<rows.length;i++){
+    var nd = rows[i].getAttribute("data-need").split(" ");
+    var show = false;
+    for(var j=0;j<nd.length;j++) if(need.indexOf(nd[j]) >= 0) show = true;
+    rows[i].classList.toggle("hidden", !show);
+  }
+}
+
+function drawBin(ink){
+  var cv = $("binCv"), W = S.W, H = S.H;
+  var dw = 640, dh = Math.max(60, Math.round(dw*H/W));
+  cv.width = dw; cv.height = dh;
+  var ctx = cv.getContext("2d");
+  var img = ctx.createImageData(dw, dh);
+  for(var y=0;y<dh;y++){
+    var sy = Math.min(H-1, Math.floor(y*H/dh));
+    for(var x=0;x<dw;x++){
+      var sx = Math.min(W-1, Math.floor(x*W/dw));
+      var v = ink[sy*W+sx] ? 0 : 255;
+      var o = (y*dw+x)*4;
+      img.data[o] = v; img.data[o+1] = v; img.data[o+2] = v; img.data[o+3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+/* ---------- 笔画计算 ---------- */
+var stTimer = null, strokeRunning = false, strokeDirty = true;
+
+function scheduleStrokes(){
+  strokeDirty = true;
+  if(!S.ink) return;
+  if(stTimer) clearTimeout(stTimer);
+  stTimer = setTimeout(function(){ stTimer = null; runStrokes(); }, 240);
+}
+
+/* 抽笔画是重活（大图可达数秒），放到遮罩后面跑，避免界面看起来死掉 */
+async function runStrokes(){
+  if(!S.ink || strokeRunning) return;
+  if(!strokeDirty && S.strokes) return;
+  strokeRunning = true;
+  setBusy(true, "正在抽取笔画…");
+  await paint();
+  try{ computeStrokes(); strokeDirty = false; }
+  finally{ strokeRunning = false; setBusy(false); }
+}
+
+function computeStrokes(){
+  if(!S.ink) return;
+  var mode = document.querySelector('input[name=mode]:checked').value;
+  S.mode = mode;
+  var W = S.W, H = S.H, ink = S.ink, strokes;
+  var t0 = performance.now();
+
+  if(mode === "solid"){
+    var widthMm = Math.max(1, num("widthMm"));
+    var scale = widthMm / W;
+    var stepPx = Math.max(1, num("spacing") / scale);
+    var horiz = $("fillDir").value === "h";
+    var paths = serpentinePaths(ink, W, H, stepPx, horiz, Math.max(1, num("minRun")));
+    strokes = paths.map(function(p){ return {pts: p, closed: false}; });
+  } else {
+    var minArea = Math.max(1, num("minArea2"));
+    var doSmooth = chk("smooth2");
+    if(mode === "outline"){
+      strokes = traceContours(ink, W, H, minArea);
+    } else {
+      var filtered = filterByArea(ink, W, H, minArea);
+      var skel = zhangSuen(filtered, W, H);
+      skel = pruneSpurs(skel, W, H, 3);
+      strokes = traceStrokes(skel, W, H);
+    }
+    strokes = strokes.map(function(s){ return simplifyStroke(s, 1.2, doSmooth); });
+    strokes = strokes.filter(function(s){ return s.pts.length >= 2; });
+    strokes.sort(function(a,b){
+      var ta = strokeTopLeft(a), tb = strokeTopLeft(b);
+      return (ta.y - tb.y) || (ta.x - tb.x);
+    });
+  }
+
+  S.strokes = strokes;
+  var ms = Math.round(performance.now() - t0);
+  drawStrokes(strokes);
+  var names = {center:"中线", outline:"轮廓", solid:"实心"};
+  var many = strokes.length > 8000
+    ? "　<b style='color:#b45309'>⚠ 笔画偏多</b>：机器要跑很久，建议加大「忽略小于」、换轮廓模式，或把成品宽度调小。"
+    : "";
+  $("st2").innerHTML = "抽出 <b>" + strokes.length + "</b> 条笔画（" + names[mode] + "模式），耗时 " + ms + " ms"
+    + "，成品 <b>" + $("widthMm").value + " × " + $("heightMm").value + " mm</b>"
+    + "（缩放 " + $("scalePct").value + "%）"
+    + (strokes.length ? many : "　<b style='color:#b45309'>⚠ 没抽出笔画</b>：回第 1 步调二值化，或把「忽略小于」调小");
+  $("addPiece").disabled = !strokes.length;
+}
+
+function drawStrokes(strokes){
+  var cv = $("stCv"), W = S.W, H = S.H;
+  var dw = 640, dh = Math.max(60, Math.round(dw*H/W));
+  if(cv.width !== dw) cv.width = dw;
+  if(cv.height !== dh) cv.height = dh;
+  var ctx = cv.getContext("2d");
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,dw,dh);
+  ctx.setTransform(ZV.z,0,0,ZV.z, ZV.x, ZV.y);
+  ctx.strokeStyle = "#111"; ctx.lineWidth = 1.3/ZV.z;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  var sx = dw/W, sy = dh/H;
+  ctx.beginPath();
+  for(var i=0;i<strokes.length;i++){
+    var st = strokes[i];
+    if(st.pts.length < 2) continue;
+    ctx.moveTo(st.pts[0][0]*sx, st.pts[0][1]*sy);
+    for(var j=1;j<st.pts.length;j++) ctx.lineTo(st.pts[j][0]*sx, st.pts[j][1]*sy);
+    if(st.closed) ctx.lineTo(st.pts[0][0]*sx, st.pts[0][1]*sy);
+  }
+  ctx.stroke();
+  ctx.setTransform(1,0,0,1,0,0);
+  cv.classList.toggle("zoomed", ZV.z > 1);
+  zvLabel();
+}
+
+/* ---------- 预览缩放 / 平移（只看图，不改输出尺寸） ---------- */
+var ZV = { z:1, x:0, y:0 };
+function zvLabel(){
+  var el = $("zvVal");
+  if(el) el.textContent = Math.round(ZV.z*100) + "%";
+}
+function clampPan(){
+  var cv = $("stCv");
+  var mx = cv.width*(ZV.z-1), my = cv.height*(ZV.z-1);
+  ZV.x = Math.min(0, Math.max(-mx, ZV.x));
+  ZV.y = Math.min(0, Math.max(-my, ZV.y));
+}
+function zvFit(){
+  ZV = { z:1, x:0, y:0 };
+  $("stCv").classList.remove("drag");
+  if(S.strokes) drawStrokes(S.strokes); else zvLabel();
+}
+function zvScale(f, cx, cy){
+  if(!S.strokes) return;
+  var z2 = Math.min(16, Math.max(1, ZV.z * f));
+  if(Math.abs(z2 - ZV.z) < 1e-6) return;
+  var c = (cx - ZV.x) / ZV.z, d = (cy - ZV.y) / ZV.z;
+  ZV.z = z2; ZV.x = cx - c*z2; ZV.y = cy - d*z2;
+  clampPan();
+  drawStrokes(S.strokes);
+}
+(function(){
+  var cv = $("stCv"), dragging = false, lx = 0, ly = 0;
+  function pt(e){
+    var r = cv.getBoundingClientRect();
+    return { x:(e.clientX - r.left) * cv.width / (r.width || cv.width),
+             y:(e.clientY - r.top)  * cv.height / (r.height || cv.height) };
+  }
+  cv.addEventListener("wheel", function(e){
+    if(!S.strokes) return;
+    e.preventDefault();
+    var p = pt(e);
+    zvScale(e.deltaY < 0 ? 1.2 : 1/1.2, p.x, p.y);
+  }, { passive:false });
+  cv.addEventListener("mousedown", function(e){
+    if(ZV.z <= 1 || e.button !== 0) return;
+    dragging = true; lx = e.clientX; ly = e.clientY;
+    cv.classList.add("drag");
+    e.preventDefault();
+  });
+  window.addEventListener("mousemove", function(e){
+    if(!dragging || !S.strokes) return;
+    var r = cv.getBoundingClientRect();
+    ZV.x += (e.clientX - lx) * cv.width / (r.width || cv.width);
+    ZV.y += (e.clientY - ly) * cv.height / (r.height || cv.height);
+    lx = e.clientX; ly = e.clientY;
+    clampPan();
+    drawStrokes(S.strokes);
+  });
+  window.addEventListener("mouseup", function(){
+    if(!dragging) return;
+    dragging = false;
+    cv.classList.remove("drag");
+  });
+  cv.addEventListener("dblclick", function(){ zvFit(); });
+  $("zvIn").addEventListener("click", function(){ zvScale(1.25, cv.width/2, cv.height/2); });
+  $("zvOut").addEventListener("click", function(){ zvScale(1/1.25, cv.width/2, cv.height/2); });
+  $("zvFit").addEventListener("click", zvFit);
+})();
+
+/* ---------- 成品尺寸：宽 / 高 / 百分比 联动 ---------- */
+var BASE_MM_PER_PX = 0.1;   // 100% 时 1 像素 = 0.1mm（约 254dpi）
+function baseWidthMm(){ return Math.max(2, (S.W || 1000) * BASE_MM_PER_PX); }
+function imgRatio(){ return (S.W && S.H) ? S.H / S.W : 1; }
+function r1(v){ return Math.round(v * 10) / 10; }
+
+function applyLock(){
+  var lock = $("sizeLock").value;          // w = 宽度说了算，h = 高度说了算
+  var wEl = $("widthMm"), hEl = $("heightMm");
+  wEl.readOnly  = (lock === "h");
+  hEl.readOnly  = (lock === "w");
+  wEl.style.background = lock === "h" ? "#faf8f3" : "#fff";
+  hEl.style.background = lock === "w" ? "#faf8f3" : "#fff";
+}
+
+/* src: "w" | "h" | "pct" —— 说明这次是谁改的，其余两个框跟着算 */
+function syncSize(src){
+  var ratio = imgRatio();
+  var raw = src === "pct" ? $("scalePct").value : (src === "h" ? $("heightMm").value : $("widthMm").value);
+  if(String(raw).trim() === "") return;        // 正在输入、框里暂时空着：先别动
+  var w = src === "pct" ? baseWidthMm() * num("scalePct") / 100
+        : src === "h"   ? num("heightMm") / ratio
+        :                 num("widthMm");
+  if(!isFinite(w)) return;
+  w = Math.min(2000, Math.max(2, w));
+  $("widthMm").value  = r1(w);
+  $("heightMm").value = r1(w * ratio);
+  $("scalePct").value = r1(w / baseWidthMm() * 100);
+  if(src){
+    saveParams();
+    if(S.strokes){
+      strokeDirty = true;
+      scheduleStrokes();
+      drawStrokes(S.strokes);
+    }
+  }
+}
+
+["widthMm","heightMm","scalePct"].forEach(function(id){
+  $(id).addEventListener("input", function(){
+    var key = id === "heightMm" ? "h" : (id === "scalePct" ? "pct" : "w");
+    if(id === "heightMm") $("sizeLock").value = "h";
+    else if(id === "widthMm") $("sizeLock").value = "w";
+    applyLock();
+    syncSize(key);
+  });
+  $(id).addEventListener("change", saveParams);
+});
+$("sizeLock").addEventListener("change", function(){
+  applyLock(); syncSize("w");
+});
+
+/* 模式切换 */
+Array.prototype.forEach.call(document.querySelectorAll("input[name=mode]"), function(r){
+  r.addEventListener("change", function(){
+    var rows = document.querySelectorAll("#p2 .pd2");
+    for(var i=0;i<rows.length;i++){
+      var only = rows[i].getAttribute("data-only").split(" ");
+      rows[i].classList.toggle("hidden", only.indexOf(r.value) < 0);
+    }
+    var hints = {
+      center: "线稿用：每条线抽成中间一条，交叉处拆成几笔，不会来回多画。文字笔画保留最好。",
+      outline: "实心图用：沿每个色块外沿描一圈。适合印章、镂空图案。",
+      solid: "一排排平行线填满黑色区域（和奎享「实心图」同原理）。每行毫米填笔头直径。"
+    };
+    strokeDirty = true;
+    $("modeHint").textContent = hints[r.value];
+    $("tip2").innerHTML = r.value === "solid"
+      ? "奎享的「每毫米多少行」= <b>1 ÷ 每行毫米</b>。比如填 5mm，就是每毫米 0.2 行。"
+      : "笔画太碎 → 加大「忽略小于」或调阈值；糊成一片 → 二值化阈值调高（反色时调低）。";
+    if(S.ink) runStrokes();
+  });
+});
+document.querySelector('input[name=mode]:checked').dispatchEvent(new Event("change"));
+["widthMm","minArea2","smooth2","spacing","fillDir","minRun"].forEach(function(id){
+  $(id).addEventListener("change", scheduleStrokes);
+  $(id).addEventListener("input", scheduleStrokes);
+});
+
+/* ---------- 加入拼版 ---------- */
+function hasPieces(){
+  for(var i=0;i<8;i++) if(S.pieces[i]) return true;
+  return false;
+}
+
+$("addPiece").addEventListener("click", function(){
+  if(!S.strokes || !S.strokes.length) return;
+  var idx = -1;
+  for(var i=0;i<8;i++){ if(!S.pieces[i]){ idx = i; break; } }
+  if(idx < 0){ $("st2").innerHTML = '<span class="err">8 个槽位都满了，先去第 3 步删掉一格。</span>'; return; }
+  S.pieces[idx] = {
+    type: "img",
+    name: S.imgName || "图",
+    strokes: S.strokes,
+    W: S.W, H: S.H,
+    widthMm: num("widthMm"),
+    mode: S.mode,
+    count: S.strokes.length
+  };
+  goStep(3);
+  renderSlots();
+});
+
+/* ---------- 拼版格 ---------- */
+function renderSlots(){
+  var host = $("slots");
+  host.innerHTML = "";
+  for(var i=0;i<8;i++){
+    (function(i){
+      var p = S.pieces[i];
+      var d = document.createElement("div");
+      d.className = "slot" + (p ? " filled" : "");
+      var no = '<span class="no">' + (i+1) + "</span>";
+      if(p){
+        var meta = p.type === "file"
+          ? '<span class="meta">G 代码文件</span>'
+          : '<span class="meta">' + p.count + " 笔 · " + p.widthMm + "mm</span>";
+        d.innerHTML = no +
+          '<span class="nm">' + p.name + "</span>" + meta +
+          '<div class="pick">' +
+            '<button data-k="字" class="' + (p.kind === "字" ? "on" : "") + '">字</button>' +
+            '<button data-k="画" class="' + (p.kind === "画" ? "on" : "") + '">画</button>' +
+          '</div>' +
+          '<button class="rm">移除</button>';
+        d.querySelectorAll(".pick button").forEach(function(b){
+          b.addEventListener("click", function(ev){
+            ev.stopPropagation();
+            p.kind = b.getAttribute("data-k");
+            renderSlots();
+          });
+        });
+        d.querySelector(".rm").addEventListener("click", function(ev){
+          ev.stopPropagation();
+          S.pieces[i] = null;
+          renderSlots();
+        });
+      } else {
+        d.innerHTML = no + '<span class="meta" style="margin-top:6px">空 · 拖 .gcode 进来</span>';
+      }
+      ["dragover","dragenter"].forEach(function(ev){
+        d.addEventListener(ev, function(e){ e.preventDefault(); d.classList.add("over"); });
+      });
+      ["dragleave","drop"].forEach(function(ev){
+        d.addEventListener(ev, function(e){ e.preventDefault(); d.classList.remove("over"); });
+      });
+      d.addEventListener("drop", function(e){
+        var f = e.dataTransfer.files[0];
+        if(!f) return;
+        if(!/\.(gcode|nc|txt)$/i.test(f.name)){
+          $("st3").innerHTML = '<span class="err">只支持 .gcode / .nc / .txt</span>';
+          return;
+        }
+        var rd = new FileReader();
+        rd.onload = function(){
+          S.pieces[i] = {type:"file", name:f.name, text:rd.result, kind:"字"};
+          renderSlots();
+        };
+        rd.readAsText(f);
+      });
+      host.appendChild(d);
+    })(i);
+  }
+  var n = 0;
+  for(var k=0;k<8;k++) if(S.pieces[k]) n++;
+  $("st3").innerHTML = n ? "已放入 <b>" + n + "</b> 格。空格会跳过，后面的自动补位。" : "还没有内容，先回第 2 步「加入拼版」。";
+  $("toStep4").disabled = n === 0;
+}
+
+$("clearSlots").addEventListener("click", function(){
+  for(var i=0;i<8;i++) S.pieces[i] = null;
+  renderSlots();
+});
+$("toStep4").addEventListener("click", function(){ goStep(4); });
+
+/* ---------- 生成成品 ---------- */
+function pieceLines(p, o){
+  if(p.type === "file") return p.text.split(/\r?\n/).map(function(l){ return l.replace(/\r$/, ""); });
+  var scale = p.widthMm / p.W;
+  var ratio = p.H * scale;
+  var feed = o.feed, upZ = o.penUpZ, downZ = 5;
+  function f(n){ return n.toFixed(3); }
+  var out = ["", "G21", "G90", "F"+feed,
+    "G1G90 Z"+upZ.toFixed(1)+"F"+feed, "G1G90 Z"+upZ.toFixed(1)+"F"+feed];
+  for(var i=0;i<p.strokes.length;i++){
+    var st = p.strokes[i];
+    if(st.pts.length < 2) continue;
+    out.push("G0 X"+f(st.pts[0][0]*scale)+"Y"+f(st.pts[0][1]*scale)+"F"+feed);
+    out.push("G1G90 Z"+downZ.toFixed(1)+"F"+feed);
+    for(var j=1;j<st.pts.length;j++) out.push("G1 X"+f(st.pts[j][0]*scale)+"Y"+f(st.pts[j][1]*scale)+"F"+feed);
+    if(st.closed) out.push("G1 X"+f(st.pts[0][0]*scale)+"Y"+f(st.pts[0][1]*scale)+"F"+feed);
+    out.push("G1G90 Z"+upZ.toFixed(1)+"F"+feed);
+  }
+  out.push("G90G0 X0Y0");
+  p.hMm = ratio.toFixed(1);
+  return out;
+}
+
+$("runAll").addEventListener("click", function(){
+  var bodies = [], i;
+  var textDownZ = num("textDownZ"), drawDownZ = num("drawDownZ");
+  var penUpZ = num("penUpZ"), feed = num("feed");
+  for(i=0;i<8;i++){
+    var p = S.pieces[i];
+    if(!p) continue;
+    bodies.push({
+      lines: pieceLines(p, {penUpZ: penUpZ, feed: feed}),
+      downZ: (p.kind === "画") ? drawDownZ : textDownZ
+    });
+  }
+  if(!bodies.length){ $("st4").innerHTML = '<span class="err">先在第 3 步放入至少一格内容。</span>'; return; }
+
+  var downZSet = [];
+  for(i=0;i<bodies.length;i++) if(downZSet.indexOf(bodies[i].downZ) < 0) downZSet.push(bodies[i].downZ);
+
+  try{
+    var merged = mergeGrid(bodies, {
+      scale: num("scale"), colGap: num("colGap"), rowGap: num("rowGap"),
+      penUpZ: penUpZ, dishRadius: num("dishRadius")
+    });
+    var r = addInk(merged.join("\r\n"), {
+      inkX: num("inkX"), inkY: num("inkY"), inkZ: num("inkZ"), inkUpZ: penUpZ,
+      dwell: num("dwell"), every: Math.max(1, num("every")),
+      penDownZ: downZSet[0], penUpZ: penUpZ, feed: feed, downZSet: downZSet,
+      scrape: chk("scrapeOn"), moveDir: $("moveDir").value, moveDist: num("moveDist"),
+      scrapeDir: $("scrapeDir").value, scrapeDist: num("scrapeDist"),
+      scrapePasses: num("scrapePasses"), scrapeZ: num("scrapeZ")
+    });
+    S.finalText = r.text;
+    S.inkCount = r.inkCount;
+
+    var blob = new Blob([r.text], {type:"text/plain;charset=utf-8"});
+    var url = URL.createObjectURL(blob);
+    var name = (S.imgName || "作品") + "_拼版蘸墨.gcode";
+    var dl = $("dl");
+    dl.href = url; dl.download = name; dl.textContent = "下载 " + name;
+
+    // 统计成版尺寸：去掉末尾回零行，否则包围盒会被拉到原点 (0,0)
+    var bb = boundingBox(stripTrailing(merged));
+    $("st4").innerHTML = "✅ 拼好 <b>" + bodies.length + "</b> 格，插入 <b>" + r.inkCount + "</b> 次蘸墨，"
+      + "成版尺寸约 <b>" + (bb ? (bb.maxX-bb.minX).toFixed(1) : "?") + " × " + (bb ? (bb.maxY-bb.minY).toFixed(1) : "?") + " mm</b>"
+      + (bb ? "，左缘 X≈" + bb.minX.toFixed(1) : "");
+    $("codePre").textContent = r.text.split("\r\n").slice(0, 30).join("\n");
+    $("outBox").classList.remove("hidden");
+    // 预览只画拼版后的笔画内容（不含蘸墨/刮墨的移动轨迹）
+    drawFinal(merged.join("\r\n"), downZSet, penUpZ);
+  }catch(err){
+    $("st4").innerHTML = '<span class="err">处理出错：' + err.message + "</span>";
+    $("outBox").classList.add("hidden");
+  }
+});
+
+/* 成品预览：按 G 代码里落笔的轨迹画（传入拼版后、蘸墨前的代码） */
+function drawFinal(text, downZSet, penUpZ){
+  var lines = text.split(/\r?\n/), i;
+  var pen = 0, px = 0, py = 0, segs = [];
+  var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for(i=0;i<lines.length;i++){
+    var line = lines[i];
+    var mz = line.match(/Z(-?[0-9.]+)/);
+    if(mz){
+      var z = Number(mz[1]);
+      if(z === penUpZ) pen = 0;
+      else if(downZSet.indexOf(z) >= 0) pen = 1;
+      if(line.indexOf("X") < 0) continue;
+    }
+    var m = line.match(/X(-?[0-9.]+)Y(-?[0-9.]+)/);
+    if(!m) continue;
+    var x = Number(m[1]), y = Number(m[2]);
+    if(pen === 1 && line.indexOf("G1") >= 0){
+      var d = Math.hypot(x-px, y-py);
+      if(d > 0.005 && d < 200){
+        segs.push([px, py, x, y]);
+        if(x<minX) minX=x; if(x>maxX) maxX=x;
+        if(y<minY) minY=y; if(y>maxY) maxY=y;
+        if(px<minX) minX=px; if(px>maxX) maxX=px;
+        if(py<minY) minY=py; if(py>maxY) maxY=py;
+      }
+    }
+    px = x; py = y;
+  }
+  var cv = $("finCv"), ctx = cv.getContext("2d");
+  if(!segs.length){
+    cv.width = 640; cv.height = 200;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0,0,640,200);
+    return;
+  }
+  var w = maxX-minX || 1, h = maxY-minY || 1;
+  var dw = 640, dh = Math.max(80, Math.round(dw*h/w));
+  if(dh > 460){ dh = 460; dw = Math.round(dh*w/h); }
+  cv.width = dw; cv.height = dh;
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,dw,dh);
+  var pad = 6, sc = Math.min((dw-2*pad)/w, (dh-2*pad)/h);
+  var ox = pad - minX*sc, oy = pad - minY*sc;
+  ctx.strokeStyle = "#111"; ctx.lineWidth = 1; ctx.lineCap = "round";
+  ctx.beginPath();
+  for(i=0;i<segs.length;i++){
+    var s = segs[i];
+    ctx.moveTo(s[0]*sc+ox, s[1]*sc+oy);
+    ctx.lineTo(s[2]*sc+ox, s[3]*sc+oy);
+  }
+  ctx.stroke();
+}
+
+/* 刮墨开关联动 */
+$("scrapeOn").addEventListener("change", function(){
+  $("scrapeBox").style.display = this.checked ? "" : "none";
+});
+if(!chk("scrapeOn")) $("scrapeBox").style.display = "none";
+
+/* 折页按钮可用性 */
+$("toStep2").addEventListener("click", function(){ goStep(2); });
+
+/* ======================= 5. 串口 & 书写（Web Serial） ======================= */
+
+var SER = {
+  port: null, ports: [], writer: null, reader: null,
+  connected: false, closing: false, buf: "",
+  acked: 0, base: 0, sent: 0, total: 0,
+  lines: [], text: "", name: "", segs: [], view: null, lenMm: 0, etaMs: 0,
+  writing: false, paused: false, aborted: false,
+  t0: 0, usedMs: 0, tick: null, poll: null,
+  state: "", mpos: { x: 0, y: 0, z: 0 }, drawT: 0
+};
+
+var ENC = new TextEncoder();
+var DEC = new TextDecoder();
+
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+function fmtTime(ms){
+  if(!isFinite(ms) || ms < 0) return "—";
+  var t = Math.round(ms / 1000), s = t % 60, m = Math.floor(t / 60) % 60, h = Math.floor(t / 3600);
+  return h ? (h + ":" + ("0" + m).slice(-2) + ":" + ("0" + s).slice(-2))
+           : (m + ":" + ("0" + s).slice(-2));
+}
+
+function serLog(msg, cls){
+  var box = $("serLog");
+  if(!box) return;
+  var d = document.createElement("div");
+  if(cls) d.className = cls;
+  var n = new Date();
+  var hh = ("0" + n.getHours()).slice(-2), mm = ("0" + n.getMinutes()).slice(-2), ss = ("0" + n.getSeconds()).slice(-2);
+  d.innerHTML = '<span class="t">' + hh + ":" + mm + ":" + ss + "</span> " + msg;
+  box.appendChild(d);
+  while(box.children.length > 160) box.removeChild(box.firstChild);
+  box.scrollTop = box.scrollHeight;
+}
+
+function serSupported(){ return !!(navigator.serial && navigator.serial.getPorts); }
+
+function portLabel(p, i){
+  var info = {};
+  try{ info = p.getInfo ? p.getInfo() : {}; }catch(e){}
+  var v = info.usbVendorId, d = info.usbProductId;
+  var usb = (v && d) ? "（" + ("0000" + v.toString(16)).slice(-4) + ":" + ("0000" + d.toString(16)).slice(-4) + "）" : "";
+  return "串口 " + (i + 1) + usb;
+}
+
+var portSeq = 0;
+async function refreshPorts(){
+  var sel = $("portSel");
+  if(!sel) return;
+  if(!serSupported()){
+    sel.innerHTML = '<option value="">浏览器不支持串口</option>';
+    return;
+  }
+  var seq = ++portSeq;
+  var list = [];
+  try{ list = await navigator.serial.getPorts(); }catch(e){}
+  if(seq !== portSeq) return;          // 期间又有新的刷新，丢弃这次结果
+  SER.ports = list;
+  sel.innerHTML = "";
+  if(!list.length){
+    var o0 = document.createElement("option");
+    o0.value = ""; o0.textContent = "还没有授权过的串口";
+    sel.appendChild(o0);
+    return;
+  }
+  list.forEach(function(p, i){
+    var o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = portLabel(p, i);
+    if(p === SER.port) o.selected = true;
+    sel.appendChild(o);
+  });
+  if(!SER.port) SER.port = list[0];
+}
+
+async function pickPort(){
+  if(!serSupported()){
+    serLog("这个浏览器没有 Web Serial：请用 Edge 或 Chrome 打开本页。", "e");
+    return;
+  }
+  try{
+    var p = await navigator.serial.requestPort();
+    SER.port = p;
+    await refreshPorts();
+    serLog("已选中串口，点「连接」开始握手。", "g");
+  }catch(e){
+    if(e && e.name === "NotFoundError") return;   // 用户取消
+    serLog("选择串口失败：" + (e.message || e), "e");
+  }
+}
+
+async function serConnect(){
+  if(SER.connected){ await serDisconnect(); return; }
+  if(!serSupported()){
+    serLog("这个浏览器没有 Web Serial：请用 Edge 或 Chrome 打开本页。", "e");
+    return;
+  }
+  if(!SER.port){
+    await pickPort();
+    if(!SER.port) return;
+  }
+  var baud = Number($("baudSel").value) || 115200;
+  $("serConn").disabled = true;
+  try{
+    await SER.port.open({ baudRate: baud, dataBits: 8, stopBits: 1,
+                          parity: "none", flowControl: "none", bufferSize: 8192 });
+    SER.writer = SER.port.writable.getWriter();
+    SER.connected = true; SER.closing = false;
+    SER.acked = 0; SER.base = 0; SER.sent = 0;
+    serLog("串口已打开 @" + baud + "，正在等控制器回应…", "g");
+    readLoop();
+    SER.poll = setInterval(queryStatus, 300);
+  }catch(e){
+    serLog("打开串口失败：" + (e.message || e) + "（被别的软件占用？先关掉奎享雕刻）", "e");
+  }finally{
+    $("serConn").disabled = false;
+    serUI();
+  }
+}
+
+async function serDisconnect(){
+  SER.closing = true;
+  SER.writing = false; SER.aborted = true; SER.paused = false;
+  if(SER.poll){ clearInterval(SER.poll); SER.poll = null; }
+  if(SER.tick){ clearInterval(SER.tick); SER.tick = null; }
+  try{ if(SER.reader) await SER.reader.cancel(); }catch(e){}
+  try{ if(SER.writer){ SER.writer.releaseLock(); SER.writer = null; } }catch(e){}
+  try{ if(SER.port) await SER.port.close(); }catch(e){}
+  SER.connected = false;
+  SER.state = "";
+  serLog("已断开。", "");
+  serUI(); drawWrite();
+}
+
+async function readLoop(){
+  var local = SER.port;
+  while(local && local.readable && !SER.closing){
+    var rd = null;
+    try{
+      rd = local.readable.getReader();
+      SER.reader = rd;
+      while(true){
+        var r = await rd.read();
+        if(r.done) break;
+        if(r.value) onChunk(DEC.decode(r.value, { stream: true }));
+      }
+    }catch(e){
+      /* 断开 / 取消读取时抛错属正常 */
+    }finally{
+      try{ if(rd) rd.releaseLock(); }catch(e){}
+      SER.reader = null;
+    }
+    if(SER.closing) break;
+    await sleep(50);
+  }
+  if(!SER.closing && SER.connected){
+    serLog("串口连接中断（设备被拔出或复位）。", "e");
+    SER.connected = false;
+    if(SER.poll){ clearInterval(SER.poll); SER.poll = null; }
+    serUI();
+  }
+}
+
+function onChunk(s){
+  SER.buf += s;
+  var i;
+  while((i = SER.buf.indexOf("\n")) >= 0){
+    var line = SER.buf.slice(0, i).replace(/\r$/, "").trim();
+    SER.buf = SER.buf.slice(i + 1);
+    if(line) handleLine(line);
+  }
+  if(SER.buf.length > 2048) SER.buf = "";     // 防止乱码把缓冲撑爆
+}
+
+function handleLine(line){
+  if(line === "ok" || line.indexOf("ok") === 0){
+    SER.acked++;
+    if(!SER.writing) SER.base = SER.acked;
+    return;
+  }
+  if(line.charAt(0) === "<"){ parseStatus(line); return; }
+  if(/^error/i.test(line)){ SER.acked++; if(!SER.writing) SER.base = SER.acked; serLog(line, "e"); return; }
+  if(/^ALARM/i.test(line)){ SER.state = "Alarm"; serLog(line + "　→ 点「解除警报」或复位", "e"); return; }
+  if(/^\[MSG/i.test(line)){ serLog(line.replace(/^\[MSG:?|\]$/g, ""), ""); return; }
+  if(/^Grbl|^grbl/i.test(line)){ serLog(line, "g"); return; }
+  if(line.charAt(0) === "$" || /^[A-Za-z]\d/.test(line)) return;
+  serLog(line, "");
+}
+
+var STATE_CN = { Idle: "空闲", Run: "书写中", Jog: "点动", Home: "回零",
+                 Hold: "已暂停", Alarm: "报警", Door: "门开", Check: "自检", Sleep: "休眠" };
+
+function parseStatus(line){
+  var parts = line.replace(/[<>]/g, "").split("|"), i;
+  SER.state = parts[0] || "";
+  for(i = 1; i < parts.length; i++){
+    var p = parts[i];
+    if(p.indexOf("MPos:") === 0 || p.indexOf("WPos:") === 0){
+      var v = p.slice(5).split(",");
+      SER.mpos.x = Number(v[0]) || 0;
+      SER.mpos.y = Number(v[1]) || 0;
+      SER.mpos.z = Number(v[2]) || 0;
+    }
+  }
+  serUI();
+  var now = Date.now();
+  if(now - SER.drawT > 120){ SER.drawT = now; drawWrite(); }
+}
+
+function queryStatus(){
+  if(!SER.connected || !SER.writer) return;
+  try{ SER.writer.write(ENC.encode("?")); }catch(e){}
+}
+
+async function sendLine(l){
+  if(!SER.connected || !SER.writer) return false;
+  try{ await SER.writer.write(ENC.encode(l + "\n")); return true; }
+  catch(e){ serLog("发送失败：" + (e.message || e), "e"); return false; }
+}
+
+async function cmd(l){
+  if(!SER.connected){ serLog("请先在「连接」里连上串口。", "e"); return; }
+  if(await sendLine(l)) serLog("→ " + l, "");
+}
+
+async function softReset(){
+  if(!SER.connected || !SER.writer) return;
+  try{ await SER.writer.write(new Uint8Array([0x18])); }catch(e){}
+}
+
+/* ---------- G 代码 -> 轨迹（预览 & 长度） ---------- */
+function buildWritePath(text){
+  var segs = [], len = 0;
+  var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  var lines = text.split(/\r?\n/), px = 0, py = 0, pen = 0;
+  for(var i = 0; i < lines.length; i++){
+    var l = lines[i];
+    var mz = l.match(/Z(-?\d+(?:\.\d+)?)/);
+    if(mz) pen = Number(mz[1]) > 0.001 ? 1 : 0;
+    var mx = l.match(/X(-?\d+(?:\.\d+)?)/);
+    var my = l.match(/Y(-?\d+(?:\.\d+)?)/);
+    if(!mx && !my) continue;
+    var x = mx ? Number(mx[1]) : px;
+    var y = my ? Number(my[1]) : py;
+    if(pen === 1 && /G0?1(?![0-9])/.test(l)){
+      var d = Math.sqrt((x - px) * (x - px) + (y - py) * (y - py));
+      if(d > 0.01 && d < 250){
+        segs.push([px, py, x, y]);
+        len += d;
+        if(x < minX) minX = x; if(x > maxX) maxX = x;
+        if(y < minY) minY = y; if(y > maxY) maxY = y;
+        if(px < minX) minX = px; if(px > maxX) maxX = px;
+        if(py < minY) minY = py; if(py > maxY) maxY = py;
+      }
+    }
+    px = x; py = y;
+  }
+  SER.segs = segs; SER.lenMm = len;
+  var cv = $("wrCv");
+  if(!segs.length){
+    if(cv){ cv.width = 640; cv.height = 240; }
+    SER.view = null;
+    return;
+  }
+  var w = (maxX - minX) || 1, h = (maxY - minY) || 1;
+  var dw = 640, dh = Math.max(90, Math.round(dw * h / w));
+  if(dh > 420){ dh = 420; dw = Math.round(dh * w / h); }
+  if(cv){ cv.width = dw; cv.height = dh; }
+  var pad = 9, sc = Math.min((dw - 2 * pad) / w, (dh - 2 * pad) / h);
+  SER.view = { sc: sc, ox: pad - minX * sc, oy: pad - minY * sc, dw: dw, dh: dh };
+}
+
+function estimateMs(){
+  var f = Number($("feed").value) || 10000;      // mm/min
+  var dwell = 0;
+  SER.lines.forEach(function(l){
+    var m = l.match(/G4\s*P([\d.]+)/i);
+    if(m) dwell += Number(m[1]) * 1000;
+  });
+  return SER.lenMm / (f / 60) * 1000 + dwell + SER.lines.length * 12;
+}
+
+function loadGcode(text, name){
+  SER.text = text || "";
+  SER.name = name || "";
+  SER.lines = SER.text.split(/\r?\n/)
+    .map(function(s){ return s.replace(/\s+$/, ""); })
+    .filter(function(s){ return s.length; });
+  buildWritePath(SER.text);
+  SER.etaMs = estimateMs();
+  SER.base = SER.acked; SER.sent = 0;
+  SER.total = SER.lines.length;
+  SER.usedMs = 0; SER.writing = false; SER.paused = false; SER.aborted = false;
+  var f = $("wrFile");
+  if(f){ f.textContent = SER.name || "—"; f.title = SER.name || ""; }
+  serLog("载入 " + (name || "内容") + "：" + SER.lines.length + " 行，"
+         + "轨迹 " + SER.lenMm.toFixed(1) + " mm", "g");
+  serUI(); drawWrite();
+}
+
+function drawWrite(){
+  var cv = $("wrCv");
+  if(!cv) return;
+  var v = SER.view, ctx = cv.getContext("2d"), W = cv.width, H = cv.height, i, s;
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = "#f3eee4"; ctx.lineWidth = 1;
+  for(var gx = 0; gx < W; gx += 40){ ctx.beginPath(); ctx.moveTo(gx + .5, 0); ctx.lineTo(gx + .5, H); ctx.stroke(); }
+  for(var gy = 0; gy < H; gy += 40){ ctx.beginPath(); ctx.moveTo(0, gy + .5); ctx.lineTo(W, gy + .5); ctx.stroke(); }
+
+  var segs = SER.segs;
+  if(!v || !segs.length){
+    ctx.fillStyle = "#b3aca1";
+    ctx.font = "13px 'Microsoft YaHei',sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("还没有落笔轨迹：回第 4 步生成，或点右边「打开文件」", W / 2, H / 2);
+    return;
+  }
+
+  ctx.lineWidth = 1; ctx.lineCap = "round"; ctx.strokeStyle = "#d6cfc2";
+  ctx.beginPath();
+  for(i = 0; i < segs.length; i++){
+    s = segs[i];
+    ctx.moveTo(s[0] * v.sc + v.ox, s[1] * v.sc + v.oy);
+    ctx.lineTo(s[2] * v.sc + v.ox, s[3] * v.sc + v.oy);
+  }
+  ctx.stroke();
+
+  var r = SER.total ? Math.min(1, Math.max(0, (SER.acked - SER.base) / SER.total)) : 0;
+  if(r > 0.001){
+    var n = Math.min(segs.length, Math.round(segs.length * r));
+    ctx.strokeStyle = "#a3302a"; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for(i = 0; i < n; i++){
+      s = segs[i];
+      ctx.moveTo(s[0] * v.sc + v.ox, s[1] * v.sc + v.oy);
+      ctx.lineTo(s[2] * v.sc + v.ox, s[3] * v.sc + v.oy);
+    }
+    ctx.stroke();
+  }
+
+  /* 机器当前位置：蓝色 L 形十字（和奎享雕刻的显示方式一致） */
+  var mx = SER.mpos.x * v.sc + v.ox, my = SER.mpos.y * v.sc + v.oy;
+  if(isFinite(mx) && isFinite(my) && mx > -50 && mx < W + 50 && my > -50 && my < H + 50){
+    ctx.strokeStyle = "#1f6feb"; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(mx, my); ctx.lineTo(mx + 24, my); ctx.lineTo(mx + 24, my + 24);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(mx, my, 3, 0, 6.2832); ctx.fillStyle = "#1f6feb"; ctx.fill();
+  }
+}
+
+/* ---------- 界面状态 ---------- */
+function serUI(){
+  var dot = $("serDot");
+  if(!dot) return;
+  var st = SER.state || "";
+  dot.className = "dot" + (SER.connected ? (st === "Run" ? " run" : " on") : "");
+  $("serState").textContent = SER.connected ? (STATE_CN[st] || st || "已连接") : "未连接";
+  $("serPos").textContent = "X " + SER.mpos.x.toFixed(1) + "　Y " + SER.mpos.y.toFixed(1)
+                          + "　Z " + SER.mpos.z.toFixed(1);
+  $("serConn").textContent = SER.connected ? "断开" : "连接";
+  $("serConn").classList.toggle("ghost", SER.connected);
+  $("wrStart").disabled = !SER.connected || !SER.lines.length || SER.writing;
+  $("wrPause").disabled = !SER.writing;
+  $("wrPause").textContent = SER.paused ? "继续" : "暂停";
+  $("wrStop").disabled = !SER.writing;
+
+  var done = Math.min(SER.total, Math.max(0, SER.acked - SER.base));
+  var r = SER.total ? done / SER.total : 0;
+  $("wrBar").style.width = (r * 100).toFixed(1) + "%";
+  $("wrPct").textContent = Math.round(r * 100) + "%　" + done + " / " + SER.total + " 行";
+  $("wrEta").textContent = SER.etaMs ? fmtTime(SER.etaMs) : "—";
+  $("wrUsed").textContent = fmtTime(SER.usedMs);
+}
+
+/* ---------- 书写 ---------- */
+async function startWriting(){
+  if(SER.writing) return;
+  if(!SER.connected){ serLog("还没连接串口。", "e"); return; }
+  if(!SER.lines.length){ serLog("没有可写内容：先在第 4 步生成，或打开一个 .gcode。", "e"); return; }
+
+  var lines = SER.lines.slice();
+  SER.writing = true; SER.aborted = false; SER.paused = false;
+  SER.base = SER.acked; SER.sent = 0; SER.total = lines.length;
+  SER.t0 = Date.now(); SER.usedMs = 0;
+  if(SER.tick) clearInterval(SER.tick);
+  SER.tick = setInterval(function(){
+    SER.usedMs = Date.now() - SER.t0;
+    serUI();
+  }, 250);
+  serLog("开始书写，共 " + lines.length + " 行。", "g");
+  serUI();
+
+  /* GRBL 的接收缓冲只有 128 字节，最多压 4 行未确认，长行也不会溢出 */
+  var WINDOW = 4, i, stallAt;
+  for(i = 0; i < lines.length; i++){
+    if(SER.aborted) break;
+    while(SER.paused && !SER.aborted) await sleep(120);
+    if(SER.aborted) break;
+
+    stallAt = Date.now();
+    while(!SER.aborted && (SER.sent - (SER.acked - SER.base)) >= WINDOW){
+      await sleep(8);
+      if(Date.now() - stallAt > 15000){
+        serLog("控制器 15 秒没有回 ok，已停止发送。检查波特率、固件是否为 GRBL。", "e");
+        SER.aborted = true;
+      }
+    }
+    if(SER.aborted) break;
+    if(!(await sendLine(lines[i]))){ SER.aborted = true; break; }
+    SER.sent++;
+  }
+
+  var deadline = Date.now() + 20000;
+  while(!SER.aborted && (SER.acked - SER.base) < SER.sent && Date.now() < deadline) await sleep(30);
+
+  if(SER.tick){ clearInterval(SER.tick); SER.tick = null; }
+  SER.usedMs = Date.now() - SER.t0;
+  SER.writing = false; SER.paused = false;
+  serLog(SER.aborted ? "书写已中止。" : "书写完成，用时 " + fmtTime(SER.usedMs) + "。",
+         SER.aborted ? "e" : "g");
+  serUI(); drawWrite();
+}
+
+async function togglePause(){
+  if(!SER.writing || !SER.writer) return;
+  try{
+    if(!SER.paused){
+      SER.paused = true;
+      await SER.writer.write(ENC.encode("!"));
+      serLog("已暂停（GRBL 进给保持），机器会走完缓冲里的几行。", "");
+    }else{
+      SER.paused = false;
+      await SER.writer.write(ENC.encode("~"));
+      serLog("继续书写。", "g");
+    }
+  }catch(e){ serLog("暂停/继续失败：" + (e.message || e), "e"); }
+  serUI();
+}
+
+async function stopWriting(){
+  if(!SER.writing) return;
+  SER.aborted = true; SER.paused = false;
+  try{ await SER.writer.write(ENC.encode("!")); }catch(e){}
+  await sleep(260);
+  await softReset();
+  serLog("已终止并复位控制器；位置可能需要重新对刀（设置原点）。", "e");
+  serUI();
+}
+
+async function jogStep(dx, dy){
+  if(SER.writing){ serLog("书写中不能点动。", "e"); return; }
+  var d = Number($("jogDist").value) || 1;
+  var f = Number($("jogSpeed").value) || 10000;
+  if(!SER.connected){ serLog("请先连接串口。", "e"); return; }
+  await sendLine("G91");
+  await sendLine("G0 X" + (dx * d).toFixed(3) + " Y" + (dy * d).toFixed(3) + " F" + f);
+  await sendLine("G90");
+  serLog("点动 " + (dx ? "X" + (dx * d).toFixed(1) : "Y" + (dy * d).toFixed(1)), "");
+}
+
+function enterWriteStep(){
+  if(!SER.text && S.finalText) loadGcode(S.finalText, "第 4 步生成");
+  if(!SER.view && SER.text) buildWritePath(SER.text);
+  drawWrite();
+  serUI();
+}
+
+/* ---------- 事件绑定 ---------- */
+$("portPick").addEventListener("click", pickPort);
+$("portSel").addEventListener("change", function(){
+  var i = Number(this.value);
+  if(SER.ports && SER.ports[i]) SER.port = SER.ports[i];
+});
+$("serConn").addEventListener("click", serConnect);
+$("wrStart").addEventListener("click", startWriting);
+$("wrPause").addEventListener("click", togglePause);
+$("wrStop").addEventListener("click", stopWriting);
+
+document.querySelectorAll("[data-jog]").forEach(function(b){
+  b.addEventListener("click", function(){
+    var v = b.getAttribute("data-jog").split(",");
+    jogStep(Number(v[0]), Number(v[1]));
+  });
+});
+
+document.querySelectorAll("[data-cmd]").forEach(function(b){
+  b.addEventListener("click", async function(){
+    var c = b.getAttribute("data-cmd");
+    if(c === "home"){ await cmd("$H"); serLog("回零中（没装限位开关的机器会报 error）。", ""); }
+    else if(c === "zero"){ await cmd("G92 X0 Y0 Z0"); serLog("已把当前位置设为原点。", "g"); }
+    else if(c === "reset"){ await softReset(); serLog("已发送软复位。", ""); }
+    else if(c === "motoroff"){ await cmd("M18"); serLog("电机已断电（可手动移动）。", ""); }
+  });
+});
+
+$("penUp").addEventListener("click", function(){
+  cmd("G1 Z" + num("penUpZ") + " F10000");
+});
+$("penDown").addEventListener("click", function(){
+  cmd("G1 Z" + num("textDownZ") + " F10000");
+});
+$("unlock").addEventListener("click", function(){
+  cmd("$X");
+});
+
+$("wrOpen").addEventListener("click", function(){ $("gcodeFile").click(); });
+$("wrClear").addEventListener("click", function(){
+  SER.text = ""; SER.name = ""; SER.lines = []; SER.segs = []; SER.view = null;
+  SER.total = 0; SER.base = SER.acked; SER.etaMs = 0; SER.usedMs = 0;
+  $("wrFile").textContent = "未载入（默认用第 4 步结果）";
+  buildWritePath("");
+  serUI(); drawWrite();
+});
+$("gcodeFile").addEventListener("change", function(){
+  var f = this.files && this.files[0];
+  if(!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){ loadGcode(String(fr.result || ""), f.name + "（" + Math.round(f.size / 1024) + " KB）"); };
+  fr.onerror = function(){ serLog("读文件失败。", "e"); };
+  fr.readAsText(f);
+  this.value = "";
+});
+
+if(serSupported()){
+  serLog("未连接。点「选择」授权串口 → 选波特率 → 点「连接」。", "");
+  refreshPorts();
+  try{
+    navigator.serial.addEventListener("connect", function(){ refreshPorts(); });
+    navigator.serial.addEventListener("disconnect", function(){ refreshPorts(); });
+  }catch(e){}
+}else{
+  serLog("当前浏览器没有 Web Serial：请用 Edge 或 Chrome 打开本页（file:// 也可以）。", "e");
+}
+
+buildWritePath("");
+serUI();
+
+renderSlots();
+updateParamVis();
+</script>
+<script>
+/* ==================================================================
+   第 ⑥ 步：字库 & 排版
+   整套逻辑用自己的作用域（IIFE）包起来，只对外暴露两个方法：
+     WZ.gcode()  当前排版结果的 G 代码（没字时返回 ""）
+     WZ.layout() 当前排版结果（字/笔/长度统计）
+   ================================================================== */
+window.WZ = (function(){
+"use strict";
+var $ = function(id){ return document.getElementById(id); };
+function nv(id, dflt){ var el = $(id); if(!el) return dflt || 0; var v = Number(el.value); return isNaN(v) ? (dflt || 0) : v; }
+function toast(msg){
+  var t = $("wzToast"); if(!t) return;
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ t.classList.remove("on"); }, 1800);
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function fmt(v, d){ return v.toFixed(d === undefined ? 3 : d); }
+
+/* ---------- 1. G 代码解析 ---------- */
+var RE_WORD = /([A-Za-z])\s*(-?\d*\.?\d+)/g;
+
+function stripComment(s){
+  var i = s.indexOf(";");
+  if(i >= 0) s = s.slice(0, i);
+  return s.replace(/\([^)]*\)/g, " ").trim();
+}
+
+/* 把 G 代码拆成连续笔画（折线数组） */
+function parseGcode(text){
+  var lines = String(text || "").split(/\r?\n/);
+  var i, l, m;
+
+  var zMin = Infinity, zMax = -Infinity, zSeen = 0;
+  for(i = 0; i < lines.length; i++){
+    l = stripComment(lines[i]);
+    if(!l) continue;
+    RE_WORD.lastIndex = 0;
+    while((m = RE_WORD.exec(l))){
+      if(m[1].toUpperCase() === "Z"){ var zv = parseFloat(m[2]); zMin = Math.min(zMin, zv); zMax = Math.max(zMax, zv); zSeen++; }
+    }
+  }
+  var mid = 0, downIsLow = false;
+  if(zSeen){ mid = (zMin + zMax) / 2; downIsLow = Math.abs(zMin) > Math.abs(zMax); }
+
+  var x = 0, y = 0, down = false, cur = null, strokes = [], anyDraw = false;
+  for(i = 0; i < lines.length; i++){
+    l = stripComment(lines[i]);
+    if(!l) continue;
+
+    var G = null, X = null, Y = null, Z = null, M = null, S = null;
+    RE_WORD.lastIndex = 0;
+    while((m = RE_WORD.exec(l))){
+      var L = m[1].toUpperCase(), v = parseFloat(m[2]);
+      if(L === "G") G = v;
+      else if(L === "X") X = v;
+      else if(L === "Y") Y = v;
+      else if(L === "Z") Z = v;
+      else if(L === "M") M = v;
+      else if(L === "S") S = v;
+    }
+
+    if(M === 3 || M === 4) down = true;
+    if(M === 5 || M === 30) down = false;
+    if(S !== null && S > 0 && M === null) down = true;
+
+    if(Z !== null){
+      if(zSeen && zMax !== zMin) down = downIsLow ? (Z < mid) : (Z > mid);
+      else down = Z > 0;
+    }
+
+    if(X !== null || Y !== null){
+      var nx = (X !== null) ? X : x, ny = (Y !== null) ? Y : y;
+      if(down){
+        if(cur && (Math.abs(cur[cur.length - 1][0] - x) > 1e-6 || Math.abs(cur[cur.length - 1][1] - y) > 1e-6)){
+          if(cur.length > 1) strokes.push(cur);
+          cur = null;
+        }
+        if(!cur) cur = [[x, y]];
+        if(Math.abs(nx - x) > 1e-6 || Math.abs(ny - y) > 1e-6){ cur.push([nx, ny]); anyDraw = true; }
+      }else if(cur){
+        if(cur.length > 1) strokes.push(cur);
+        cur = null;
+      }
+      x = nx; y = ny;
+    }
+  }
+  if(cur && cur.length > 1) strokes.push(cur);
+
+  return {strokes: strokes, zMin: zSeen ? zMin : 0, zMax: zSeen ? zMax : 0, hasDraw: anyDraw};
+}
+
+function stBox(st){
+  var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for(var i = 0; i < st.length; i++){
+    var p = st[i];
+    if(p[0] < x0) x0 = p[0];
+    if(p[0] > x1) x1 = p[0];
+    if(p[1] < y0) y0 = p[1];
+    if(p[1] > y1) y1 = p[1];
+  }
+  return {x0: x0, y0: y0, x1: x1, y1: y1};
+}
+
+/* ---------- 2. 切成字模 ---------- */
+function splitGlyphs(strokes, gapMm, whole){
+  var n = strokes.length;
+  if(!n) return [];
+  var boxes = [], i, j;
+  for(i = 0; i < n; i++) boxes.push(stBox(strokes[i]));
+
+  if(whole || n === 1){
+    var one = makeGlyph(strokes, boxes, rangeOf(n));
+    one.ref = one.h;
+    return [one];
+  }
+
+  var par = [];
+  for(i = 0; i < n; i++) par.push(i);
+  function find(a){ while(par[a] !== a){ par[a] = par[par[a]]; a = par[a]; } return a; }
+  function uni(a, b){ a = find(a); b = find(b); if(a !== b) par[b] = a; }
+
+  var D = Math.max(0.05, gapMm || 1);
+  var order = [];
+  for(i = 0; i < n; i++) order.push(i);
+  order.sort(function(a, b){ return boxes[a].x0 - boxes[b].x0; });
+
+  for(i = 0; i < order.length; i++){
+    var a = boxes[order[i]];
+    for(j = i + 1; j < order.length; j++){
+      var b = boxes[order[j]];
+      if(b.x0 - a.x1 > D) break;
+      var gx = Math.max(0, Math.max(a.x0, b.x0) - Math.min(a.x1, b.x1));
+      var gy = Math.max(0, Math.max(a.y0, b.y0) - Math.min(a.y1, b.y1));
+      if(gx <= D && gy <= D) uni(order[i], order[j]);
+    }
+  }
+
+  var groups = {}, keys = [];
+  for(i = 0; i < n; i++){
+    var r = find(i);
+    if(!groups[r]){ groups[r] = []; keys.push(r); }
+    groups[r].push(i);
+  }
+  keys.sort(function(a, b){ return groups[a][0] - groups[b][0]; });
+
+  var out = [];
+  for(i = 0; i < keys.length; i++){
+    var idxs = groups[keys[i]].sort(function(a, b){ return a - b; });
+    var ss = idxs.map(function(k){ return strokes[k]; });
+    var bb = idxs.map(function(k){ return boxes[k]; });
+    out.push(makeGlyph(ss, bb, idxs));
+  }
+  /* 一批字模共用一个「参考字高」= 最高的那个字（满格字）。
+     排版按它归一，否则「一」「二」这种扁字会被按自身高度放大成一条巨宽的墨带。 */
+  var refH = 0;
+  for(i = 0; i < out.length; i++) if(out[i].h > refH) refH = out[i].h;
+  refH = Math.round(refH * 100) / 100;
+  for(i = 0; i < out.length; i++) out[i].ref = refH;
+  return out;
+}
+
+function rangeOf(n){ var a = []; for(var i = 0; i < n; i++) a.push(i); return a; }
+
+/* 自动阈值：整份内容大小的 2%，夹在 3~12mm。偏小是有意的——拆碎了能合并/调大。 */
+function autoGap(strokes){
+  var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, i, b;
+  for(i = 0; i < strokes.length; i++){
+    b = stBox(strokes[i]);
+    if(b.x0 < x0) x0 = b.x0;
+    if(b.y0 < y0) y0 = b.y0;
+    if(b.x1 > x1) x1 = b.x1;
+    if(b.y1 > y1) y1 = b.y1;
+  }
+  var m = Math.max(x1 - x0, y1 - y0);
+  if(!isFinite(m) || m <= 0) return 6;
+  return Math.round(Math.min(12, Math.max(3, m * 0.02)) * 2) / 2;
+}
+
+function makeGlyph(strokes, boxes, idxs){
+  var x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, i, j;
+  for(i = 0; i < boxes.length; i++){
+    x0 = Math.min(x0, boxes[i].x0); y0 = Math.min(y0, boxes[i].y0);
+    x1 = Math.max(x1, boxes[i].x1); y1 = Math.max(y1, boxes[i].y1);
+  }
+  var ss = [];
+  for(i = 0; i < strokes.length; i++){
+    var line = [];
+    for(j = 0; j < strokes[i].length; j++){
+      line.push([Math.round((strokes[i][j][0] - x0) * 100) / 100,
+                 Math.round((strokes[i][j][1] - y0) * 100) / 100]);
+    }
+    ss.push(line);
+  }
+  return {ch: "", w: Math.round((x1 - x0) * 100) / 100, h: Math.round((y1 - y0) * 100) / 100,
+          strokes: ss, src: idxs};
+}
+
+/* ---------- 3. 排版 ---------- */
+function placePoint(p, it){
+  var s = it.s, g = it.g;
+  var px = p[0] * s, py = p[1] * s;
+  if(it.rot){
+    var cx = g.w * s / 2, cy = g.h * s / 2;
+    var a = it.rot * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a);
+    var dx = px - cx, dy = py - cy;
+    px = cx + dx * cs - dy * sn;
+    py = cy + dx * sn + dy * cs;
+  }
+  return [it.x + px, it.y + py];
+}
+
+function layout(o, text, lib){
+  var map = {};
+  for(var i = 0; i < lib.length; i++){
+    var g = lib[i];
+    if(g.ch && !map[g.ch]) map[g.ch] = g;
+  }
+  var rnd = mulberry32(20261116);
+  var items = [], missing = {}, used = {};
+  var lines = String(text || "").replace(/\r/g, "").split("\n");
+  var contentW = Math.max(1, o.W - o.left - o.right);
+  var contentH = Math.max(1, o.H - o.top - (o.bottom !== undefined ? o.bottom : o.top));
+
+  function seqOf(line){
+    var chars = Array.from(line), out = [];
+    for(var k = 0; k < chars.length; k++){
+      var ch = chars[k];
+      if(ch === " " || ch === "\t"){ out.push({space: true, w: o.fontH * 0.5}); continue; }
+      var g = map[ch];
+      if(!g){ missing[ch] = (missing[ch] || 0) + 1; out.push({space: true, w: o.fontH * 0.5, miss: true}); continue; }
+      used[ch] = true;
+      var sc = o.fontH / Math.max(0.001, g.ref || g.h);
+      out.push({g: g, s: sc, w: Math.max(g.w * sc, o.fontH * 0.55)});
+    }
+    return out;
+  }
+
+  function jit(){
+    var a = o.jit / 100;
+    if(a <= 0) return {dx: 0, dy: 0, s: 1, rot: 0};
+    return {dx: (rnd() * 2 - 1) * a * 0.6, dy: (rnd() * 2 - 1) * a * 0.6,
+            s: 1 + (rnd() * 2 - 1) * a * 0.05, rot: (rnd() * 2 - 1) * a * 3.2};
+  }
+
+  if(o.dir === "h"){
+    var y = o.top;
+    for(var li = 0; li < lines.length; li++){
+      var seq = seqOf(lines[li]);
+      var lineW = 0, k;
+      for(k = 0; k < seq.length; k++){ lineW += seq[k].w; if(k < seq.length - 1) lineW += o.wordGap; }
+      var x = o.left + (o.align === "center" ? Math.max(0, (contentW - lineW) / 2) : 0);
+      for(k = 0; k < seq.length; k++){
+        var it = seq[k];
+        if(it.g){
+          var j = jit();
+          items.push({g: it.g, s: it.s * j.s, x: x + j.dx * o.fontH, y: y + j.dy * o.fontH, rot: j.rot});
+        }
+        x += it.w + o.wordGap;
+      }
+      y += o.fontH + o.lineGap;
+      if(y - o.top > contentH + o.fontH) break;
+    }
+  }else{
+    for(var ci = 0; ci < lines.length; ci++){
+      var sq = seqOf(lines[ci]);
+      var colH = 0, m;
+      for(m = 0; m < sq.length; m++){ colH += sq[m].w; if(m < sq.length - 1) colH += o.wordGap; }
+      var yy = o.top + (o.align === "center" ? Math.max(0, (contentH - colH) / 2) : 0);
+      var xx = o.W - o.right - (ci + 1) * o.fontH - ci * o.lineGap;
+      for(m = 0; m < sq.length; m++){
+        var itv = sq[m];
+        if(itv.g){
+          var jv = jit();
+          items.push({g: itv.g, s: itv.s * jv.s, x: xx + jv.dx * o.fontH, y: yy + jv.dy * o.fontH, rot: jv.rot});
+        }
+        yy += Math.max(o.fontH, itv.w) + o.wordGap;
+      }
+      if(xx < 0) break;
+    }
+  }
+  return {items: items, missing: Object.keys(missing)};
+}
+
+function toGcode(items, o){
+  var out = ["", "G21", "G90", "F" + o.feed,
+             "G1G90 Z" + o.upZ.toFixed(1) + "F" + o.feed,
+             "G1G90 Z" + o.upZ.toFixed(1) + "F" + o.feed];
+  for(var i = 0; i < items.length; i++){
+    var it = items[i], ss = it.g.strokes;
+    for(var k = 0; k < ss.length; k++){
+      var st = ss[k];
+      if(st.length < 2) continue;
+      var p0 = placePoint(st[0], it);
+      out.push("G0 X" + fmt(p0[0]) + "Y" + fmt(p0[1]) + "F" + o.feed);
+      out.push("G1G90 Z" + o.downZ.toFixed(1) + "F" + o.feed);
+      for(var j = 1; j < st.length; j++){
+        var p = placePoint(st[j], it);
+        out.push("G1 X" + fmt(p[0]) + "Y" + fmt(p[1]) + "F" + o.feed);
+      }
+      out.push("G1G90 Z" + o.upZ.toFixed(1) + "F" + o.feed);
+    }
+  }
+  out.push("G90G0 X0Y0");
+  return out.join("\r\n");
+}
+
+function pathLength(items){
+  var len = 0;
+  for(var i = 0; i < items.length; i++){
+    var it = items[i], ss = it.g.strokes;
+    for(var k = 0; k < ss.length; k++){
+      var st = ss[k];
+      for(var j = 1; j < st.length; j++){
+        var a = placePoint(st[j - 1], it), b = placePoint(st[j], it);
+        len += Math.hypot(b[0] - a[0], b[1] - a[1]);
+      }
+    }
+  }
+  return len;
+}
+
+/* ---------- 4. 界面状态 ---------- */
+var LIB_KEY = "zg_glyphlib_v1";
+var LIB = [];
+var RAW = [];
+var SEL = {};
+var LAST = null;
+
+function saveLib(){
+  try{ localStorage.setItem(LIB_KEY, JSON.stringify(LIB)); }
+  catch(e){ toast("字库太大，浏览器存不下了，请先备份再删一些"); }
+}
+function loadLib(){
+  try{
+    var raw = localStorage.getItem(LIB_KEY);
+    if(raw) LIB = JSON.parse(raw) || [];
+  }catch(e){ LIB = []; }
+}
+
+function opts(){
+  return {
+    W: nv("pW", 150), H: nv("pH", 260), fontH: nv("pFont", 10),
+    wordGap: nv("pWord", 1), lineGap: nv("pLine", 3),
+    top: nv("pTop", 5), left: nv("pLeft", 5), right: nv("pRight", 5),
+    dir: $("pDir").value, align: $("pAlign").value, jit: nv("pJit", 0),
+    downZ: nv("pDownZ", 5), upZ: nv("pUpZ", 0), feed: nv("pFeed", 10000)
+  };
+}
+
+/* ---------- 5. 字模库渲染 ---------- */
+function drawThumb(cv, g){
+  var ctx = cv.getContext("2d"), W = cv.width, H = cv.height, pad = 6;
+  ctx.clearRect(0, 0, W, H);
+  var sc = Math.min((W - pad * 2) / Math.max(0.001, g.w || 1), (H - pad * 2) / Math.max(0.001, g.h || 1));
+  var ox = (W - g.w * sc) / 2, oy = (H - g.h * sc) / 2;
+  ctx.strokeStyle = "#232220"; ctx.lineWidth = 1.15;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  for(var i = 0; i < g.strokes.length; i++){
+    var st = g.strokes[i];
+    if(st.length < 2) continue;
+    ctx.beginPath();
+    ctx.moveTo(ox + st[0][0] * sc, oy + st[0][1] * sc);
+    for(var j = 1; j < st.length; j++) ctx.lineTo(ox + st[j][0] * sc, oy + st[j][1] * sc);
+    ctx.stroke();
+  }
+}
+
+function renderLib(){
+  var host = $("glyphs");
+  host.innerHTML = "";
+  var frag = document.createDocumentFragment();
+  for(var i = 0; i < LIB.length; i++){
+    (function(i){
+      var g = LIB[i];
+      var d = document.createElement("div");
+      d.className = "g" + (SEL[i] ? " sel" : "");
+      d.title = "第 " + (i + 1) + " 个 · " + g.strokes.length + " 笔 · " + g.w.toFixed(1) + "×" + g.h.toFixed(1) + " mm";
+      var cv = document.createElement("canvas");
+      cv.width = 76; cv.height = 76;
+      var idx = document.createElement("span");
+      idx.className = "idx"; idx.textContent = i + 1;
+      var inp = document.createElement("input");
+      inp.className = "gch"; inp.value = g.ch || ""; inp.maxLength = 4;
+      inp.placeholder = "?";
+      inp.addEventListener("input", function(){ LIB[i].ch = inp.value.trim(); saveLib(); refreshPreview(); });
+      inp.addEventListener("click", function(e){ e.stopPropagation(); });
+      d.appendChild(cv); d.appendChild(idx); d.appendChild(inp);
+      d.addEventListener("click", function(e){
+        if(e.target === inp) return;
+        SEL[i] = !SEL[i];
+        d.classList.toggle("sel", !!SEL[i]);
+        updateSelUI();
+      });
+      frag.appendChild(d);
+      drawThumb(cv, g);
+    })(i);
+  }
+  host.appendChild(frag);
+  $("libCnt").textContent = LIB.length ? "共 " + LIB.length + " 个字模" : "空";
+  updateSelUI();
+  if(typeof refreshBulkMarks === "function") refreshBulkMarks();
+}
+
+function selIdx(){
+  var a = [];
+  for(var k in SEL) if(SEL[k] && LIB[Number(k)]) a.push(Number(k));
+  return a.sort(function(x, y){ return x - y; });
+}
+function updateSelUI(){
+  var a = selIdx();
+  $("btnMergeSel").disabled = a.length < 2;
+  $("btnDelSel").disabled = a.length < 1;
+}
+
+/* ---------- 6. 预览 ---------- */
+function drawPreview(res, o){
+  var cv = $("cv"), ctx = cv.getContext("2d");
+  var maxCssW = 560, maxCssH = 720;
+  var k = Math.min(maxCssW / Math.max(1, o.W), maxCssH / Math.max(1, o.H));
+  var cssW = Math.max(120, Math.round(o.W * k)), cssH = Math.max(120, Math.round(o.H * k));
+  var DPR = 2;
+  cv.width = cssW * DPR;
+  cv.height = cssH * DPR;
+  cv.style.width = cssW + "px";
+  cv.style.height = cssH + "px";
+
+  var s = k * DPR;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#fffdf8"; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.strokeStyle = "#eee7d9"; ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, cv.width - 1, cv.height - 1);
+
+  ctx.setTransform(s, 0, 0, s, 0, 0);
+  ctx.strokeStyle = "#232220"; ctx.lineWidth = Math.max(0.2, 1.25 / s);
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+
+  var items = res.items;
+  for(var i = 0; i < items.length; i++){
+    var it = items[i], ss = it.g.strokes;
+    for(var kk = 0; kk < ss.length; kk++){
+      var st = ss[kk];
+      if(st.length < 2) continue;
+      var p = placePoint(st[0], it);
+      ctx.beginPath(); ctx.moveTo(p[0], p[1]);
+      for(var j = 1; j < st.length; j++){
+        var q = placePoint(st[j], it);
+        ctx.lineTo(q[0], q[1]);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  var over = false;
+  for(var m = 0; m < items.length; m++){
+    var itv = items[m];
+    if(itv.x < -0.5 || itv.y < -0.5 || itv.x + itv.g.w * itv.s > o.W + 0.5 || itv.y + itv.g.h * itv.s > o.H + 0.5){ over = true; break; }
+  }
+  var wn = $("warnline");
+  if(over){
+    wn.style.display = "";
+    wn.textContent = "有字超出纸张范围了：把字高压小、或把边距/字距调小。";
+  }else if(res.missing.length){
+    wn.style.display = "";
+    wn.textContent = "字库里没有这些字，已留空：" + res.missing.join(" ");
+  }else{
+    wn.style.display = "none";
+  }
+}
+
+var previewTimer = null;
+function refreshPreview(){
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(function(){
+    var o = opts();
+    var res = layout(o, $("txt").value, LIB);
+    LAST = {res: res, o: o};
+    drawPreview(res, o);
+    var strokes = 0;
+    for(var i = 0; i < res.items.length; i++) strokes += res.items[i].g.strokes.length;
+    var len = pathLength(res.items);
+    var eta = len / (Math.max(1, o.feed) / 60) + strokes * 0.12;
+    $("stats").innerHTML =
+      "字 <b>" + res.items.length + "</b>" +
+      " ｜ 笔 <b>" + strokes + "</b>" +
+      " ｜ 轨迹 <b>" + len.toFixed(0) + "</b> mm" +
+      " ｜ 预计 <b>" + Math.round(eta) + "</b> 秒" +
+      (o.jit > 0 ? " ｜ 抖动 <b>" + o.jit + "%</b>" : "");
+    $("btnExport").disabled = !res.items.length;
+    $("btnCopy").disabled = !res.items.length;
+    $("btnToWB").disabled = !res.items.length;
+  }, 60);
+}
+
+/* ---------- 7. 导入 / 切分 ---------- */
+function splitMm(){ return Math.max(0.2, nv("splitMm", 6)); }
+
+var splitTouched = false;
+
+/* 文件名当字表：`一只1.gcode` → 「一只」。批量建库时一次导几十份，靠它省掉一个个打字。
+   反过来它还是「标准答案」：文件名几个汉字，就应该切出几个字模，阈值可以按这个反推。 */
+var DEFAULT_NAMES = { "未命名": 1, "未名": 1, "新建": 1, "新任务": 1, "任务": 1, "无标题": 1,
+                      "测试": 1, "笔记": 1, "单笔字": 1, "图形": 1, "untitled": 1, "test": 1 };
+
+function nameChars(name){
+  var base = String(name || "").replace(/\.[a-z0-9]{1,6}$/i, "");
+  var parts = base.split(/[\s_\-－·.,，、（）()]+/).filter(Boolean);
+  /* 从后往前试每一段：「永和九年_第3页」先把「第3页」判掉，再命中「永和九年」 */
+  for(var k = parts.length - 1; k >= 0; k--){
+    var seg = parts[k].replace(/\d+$/, "");          // 去掉结尾批次序号：一只1 → 一只
+    if(/\d/.test(seg)) continue;                    // 中间还夹数字，是批次名不是字表
+    if(/^[a-z]+$/i.test(seg)) continue;              // 纯英文（test / notes）不是字表
+    if(!/^[\u3400-\u9fff]+$/.test(seg)) continue;   // 必须整串都是汉字
+    if(DEFAULT_NAMES[seg]) continue;                 // 「未命名」「新建」这种默认名不是字表
+    return Array.from(seg);
+  }
+  return null;
+}
+
+function nameFromFile(name, n){
+  var arr = nameChars(name);
+  return (arr && arr.length === n) ? arr : null;
+}
+
+/* 已知应该切出 n 个字，反推最合适的阈值：组数随阈值单调不增，扫一遍找「正好 n 个」的那段，取中点最稳。
+   比盲猜可靠得多——autoGap 在笔画碎的字上常常切得过细。 */
+function gapForCount(strokes, n){
+  if(!(n >= 1)) return null;
+  var probe = [], d = 0.4;
+  while(d <= 60){ probe.push(Math.round(d * 100) / 100); d *= 1.25; }
+  var cnt = probe.map(function(x){ return splitGlyphs(strokes, x, false).length; });
+  var lo = -1, bestLo = -1, bestLen = 0, i;
+  for(i = 0; i <= cnt.length; i++){
+    var v = i < cnt.length ? cnt[i] : -1;
+    if(v === n){
+      if(lo < 0) lo = i;
+    }else if(lo >= 0){
+      if(i - lo > bestLen){ bestLen = i - lo; bestLo = lo; }
+      lo = -1;
+    }
+  }
+  if(bestLo >= 0) return probe[bestLo + ((bestLen - 1) >> 1)];
+  /* 组数随阈值单调不增，粗扫没命中就说明刚好跨过去了，在这一档之间细扫 */
+  for(i = 1; i < cnt.length; i++){
+    if(cnt[i - 1] > n && cnt[i] < n){
+      var a = probe[i - 1], b = probe[i];
+      for(var k = 1; k <= 16; k++){
+        var x = Math.round((a + (b - a) * k / 17) * 100) / 100;
+        if(splitGlyphs(strokes, x, false).length === n) return x;
+      }
+    }
+  }
+  return null;
+}
+
+function addGcode(text, name){
+  var p = parseGcode(text);
+  if(!p.strokes.length){ toast("没解析出笔画：" + name); return 0; }
+
+  var want = nameChars(name);          // 文件名里的字表，长度 ≥2 才敢当标准答案
+  var d = splitMm(), gs = null, auto = null;
+
+  if(want && want.length >= 2 && !splitTouched){
+    var d2 = gapForCount(p.strokes, want.length);
+    if(d2 !== null){
+      gs = splitGlyphs(p.strokes, d2, false);
+      if(gs.length === want.length){ d = d2; auto = want; }
+      else gs = null;
+    }
+  }
+  if(!gs){
+    if(!splitTouched){ d = autoGap(p.strokes); }
+    gs = splitGlyphs(p.strokes, d, false);
+    if(want && want.length === gs.length) auto = want;
+  }
+  if(!splitTouched) $("splitMm").value = d;
+
+  RAW.push({name: name, strokes: p.strokes, d: d});
+  for(var i = 0; i < gs.length; i++){
+    gs[i].imp = true;
+    if(auto) gs[i].ch = auto[i];
+    LIB.push(gs[i]);
+  }
+  addGcode.lastD = d;
+  if(auto) addGcode.named = (addGcode.named || 0) + gs.length;
+  return gs.length;
+}
+
+function importFiles(files){
+  var list = Array.prototype.slice.call(files || []);
+  if(!list.length) return;
+  var left = list.length, total = 0;
+  addGcode.named = 0;
+  list.forEach(function(f){
+    var fr = new FileReader();
+    fr.onload = function(){
+      try{ total += addGcode(String(fr.result || ""), f.name); }
+      catch(e){ console.error(e); }
+      if(--left === 0) finish();
+    };
+    fr.onerror = function(){ if(--left === 0) finish(); };
+    fr.readAsText(f);
+  });
+  function finish(){
+    saveLib(); renderLib(); refreshPreview();
+    $("btnResplit").disabled = RAW.length === 0;
+    $("btnWhole").disabled = RAW.length === 0;
+    toast("导入完成：+" + total + " 个字模（切分阈值 " + addGcode.lastD + " mm）" +
+          (addGcode.named ? "，按文件名自动命名 " + addGcode.named + " 个" : ""));
+  }
+}
+
+$("splitMm").addEventListener("input", function(){ splitTouched = true; });
+
+/* ---------- 7.5 批量建库 ---------- */
+function hanziSet(str){
+  var seen = {}, out = [], arr = Array.from(String(str || ""));
+  for(var i = 0; i < arr.length; i++){
+    var ch = arr[i];
+    if(!/^[\u3400-\u9fff]$/.test(ch)) continue;
+    if(seen[ch]) continue;
+    seen[ch] = 1; out.push(ch);
+  }
+  return out;
+}
+function libHasMap(){
+  var m = {};
+  for(var i = 0; i < LIB.length; i++) if(LIB[i].ch) m[LIB[i].ch] = 1;
+  return m;
+}
+function copyText(t){
+  function fallback(){
+    var ta = document.createElement("textarea");
+    ta.value = t; ta.style.position = "fixed"; ta.style.left = "-9999px"; ta.style.top = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    var okk = false;
+    try{ okk = document.execCommand("copy"); }catch(e){}
+    document.body.removeChild(ta);
+    toast(okk ? "已复制，粘到奎享里排一版" : "复制失败，请手动选中这段文字");
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ toast("已复制，粘到奎享里排一版"); }, fallback);
+  }else fallback();
+}
+
+function refreshBulkMarks(){
+  var host = $("bulkPages");
+  if(!host) return;
+  var has = libHasMap(), ds = host.querySelectorAll(".bpage");
+  for(var i = 0; i < ds.length; i++){
+    var arr = Array.from(ds[i].getAttribute("data-chars") || ""), all = true;
+    for(var k = 0; k < arr.length; k++){ if(!has[arr[k]]){ all = false; break; } }
+    ds[i].classList.toggle("done", all);
+    var btn = ds[i].querySelector("button");
+    if(btn) btn.textContent = all ? "已入库" : "复制这页";
+  }
+}
+
+function renderBulk(){
+  var chars = hanziSet($("bulkTxt").value);
+  var per = Math.max(5, Math.min(200, nv("bulkPer", 60)));
+  var host = $("bulkPages");
+  if(!host) return;
+  host.innerHTML = "";
+  if(!chars.length){
+    $("bulkStat").textContent = "上面粘一段文字，再点「拆字分页」。";
+    $("bulkCnt").textContent = "把要写的字一次备齐";
+    return;
+  }
+  var has = libHasMap();
+  var lack = chars.filter(function(c){ return !has[c]; });
+  var pages = [], i;
+  for(i = 0; i < chars.length; i += per) pages.push(chars.slice(i, i + per));
+
+  $("bulkCnt").textContent = chars.length + " 字 / " + pages.length + " 页";
+  $("bulkStat").innerHTML = "共 <b>" + chars.length + "</b> 个不同的字 → <b>" + pages.length +
+    "</b> 页（每页 " + per + " 字）｜ 字库已有 <b>" + (chars.length - lack.length) + "</b> 个，还缺 <b>" +
+    lack.length + "</b> 个" + (lack.length ? "<br>缺：" + lack.join("") : "");
+
+  for(i = 0; i < pages.length; i++){
+    (function(k){
+      var txt = pages[k].join("");
+      var d = document.createElement("div");
+      d.className = "bpage";
+      d.setAttribute("data-chars", txt);
+      var head = document.createElement("div"); head.className = "bhead";
+      var t = document.createElement("span");
+      t.innerHTML = "第 <b>" + (k + 1) + "</b> 页 · " + pages[k].length + " 字";
+      var b = document.createElement("button");
+      b.className = "ghost"; b.textContent = "复制这页";
+      b.addEventListener("click", function(){ copyText(txt); });
+      head.appendChild(t); head.appendChild(b);
+      var body = document.createElement("div");
+      body.className = "btxt"; body.textContent = txt;
+      d.appendChild(head); d.appendChild(body);
+      host.appendChild(d);
+    })(i);
+  }
+  refreshBulkMarks();
+  try{
+    localStorage.setItem("zg_bulk_txt", $("bulkTxt").value);
+    localStorage.setItem("zg_bulk_per", String(per));
+  }catch(e){}
+}
+
+$("bulkGo").addEventListener("click", renderBulk);
+$("bulkTxt").addEventListener("input", function(){
+  clearTimeout(renderBulk.tm);
+  renderBulk.tm = setTimeout(renderBulk, 350);
+});
+$("bulkPer").addEventListener("change", renderBulk);
+(function(){
+  try{
+    var t = localStorage.getItem("zg_bulk_txt"), p = localStorage.getItem("zg_bulk_per");
+    if(t){ $("bulkTxt").value = t; }
+    if(p){ $("bulkPer").value = p; }
+  }catch(e){}
+  if($("bulkTxt").value.trim()) renderBulk();
+})();
+
+$("pickFile").addEventListener("click", function(){ $("gfile").click(); });
+$("gfile").addEventListener("change", function(){ importFiles(this.files); this.value = ""; });
+
+(function(){
+  var d = $("drop");
+  ["dragenter", "dragover"].forEach(function(ev){
+    d.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); d.classList.add("over"); });
+  });
+  ["dragleave", "drop"].forEach(function(ev){
+    d.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); d.classList.remove("over"); });
+  });
+  d.addEventListener("drop", function(e){
+    if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) importFiles(e.dataTransfer.files);
+  });
+})();
+
+$("btnResplit").addEventListener("click", function(){
+  if(!RAW.length){ toast("重新切分只对本次导入的文件有效，请重新导入"); return; }
+  if(!confirm("会用「" + splitMm() + " mm」重新切分本次导入的 " + RAW.length + " 份文件，覆盖刚导入的那批字模（手动改过的字名会丢）。继续？")) return;
+  var names = [];
+  for(var i = 0; i < LIB.length; i++) if(LIB[i].ch) names.push(LIB[i].ch);
+  LIB = LIB.filter(function(g){ return !g.imp; });
+  var all = [];
+  RAW.forEach(function(r){ all = all.concat(splitGlyphs(r.strokes, splitTouched ? splitMm() : (r.d || splitMm()), false)); });
+  for(var k = 0; k < all.length; k++){ all[k].imp = true; if(names[k]) all[k].ch = names[k]; LIB.push(all[k]); }
+  saveLib(); renderLib(); refreshPreview();
+  toast("已重切为 " + all.length + " 个字模");
+});
+
+$("btnWhole").addEventListener("click", function(){
+  if(!RAW.length){ toast("请先导入一份 G 代码"); return; }
+  var r = RAW[RAW.length - 1];
+  var g = splitGlyphs(r.strokes, splitMm(), true)[0];
+  if(!g) return;
+  g.ch = prompt("给这个字模起个名字（一个字就行）：", "") || "";
+  LIB.push(g); saveLib(); renderLib(); refreshPreview();
+  toast("已按整版添加 1 个字模");
+});
+
+$("btnName").addEventListener("click", function(){
+  var s = $("quickName").value.replace(/\s/g, "");
+  if(!s) return;
+  var chars = Array.from(s), k = 0;
+  for(var i = 0; i < LIB.length && k < chars.length; i++){
+    if(!LIB[i].ch){ LIB[i].ch = chars[k++]; }
+  }
+  saveLib(); renderLib(); refreshPreview();
+  toast(k ? "已命名 " + k + " 个字模" : "没有空名字的字模可以套用了");
+});
+
+$("btnSelNone").addEventListener("click", function(){ SEL = {}; renderLib(); });
+
+$("btnMergeSel").addEventListener("click", function(){
+  var idx = selIdx();
+  if(idx.length < 2) return;
+  var first = idx[0], ss = [], boxes = [];
+  idx.forEach(function(i){
+    LIB[i].strokes.forEach(function(st){
+      var line = st.map(function(p){ return [p[0] + 0, p[1] + 0]; });
+      ss.push(line);
+      boxes.push(stBox(line));
+    });
+  });
+  var g = makeGlyph(ss, boxes, []);
+  g.ch = LIB[first].ch || "";
+  var rest = LIB.filter(function(_, i){ return idx.indexOf(i) < 0; });
+  rest.splice(Math.min(first, rest.length), 0, g);
+  LIB = rest; SEL = {};
+  saveLib(); renderLib(); refreshPreview();
+  toast("已合并成 1 个字模");
+});
+
+$("btnDelSel").addEventListener("click", function(){
+  var idx = selIdx();
+  if(!idx.length) return;
+  if(!confirm("删除选中的 " + idx.length + " 个字模？")) return;
+  LIB = LIB.filter(function(_, i){ return idx.indexOf(i) < 0; });
+  SEL = {};
+  saveLib(); renderLib(); refreshPreview();
+});
+
+$("btnExportLib").addEventListener("click", function(){
+  if(!LIB.length){ toast("字库是空的"); return; }
+  download("字库_" + stamp() + ".json", JSON.stringify({v: 1, glyphs: LIB}));
+  toast("已备份 " + LIB.length + " 个字模");
+});
+$("btnImportLib").addEventListener("click", function(){ $("libfile").click(); });
+$("libfile").addEventListener("change", function(){
+  var f = this.files && this.files[0]; if(!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    try{
+      var o = JSON.parse(String(fr.result || "{}"));
+      var gs = Array.isArray(o) ? o : (o.glyphs || []);
+      if(!gs.length){ toast("这个文件里没有字模"); return; }
+      LIB = LIB.concat(gs); saveLib(); renderLib(); refreshPreview();
+      toast("已恢复 " + gs.length + " 个字模");
+    }catch(e){ toast("文件解析失败"); }
+  };
+  fr.readAsText(f);
+  this.value = "";
+});
+$("btnClearLib").addEventListener("click", function(){
+  if(!LIB.length) return;
+  if(!confirm("清空整个字库？这一步不能撤销（建议先备份）。")) return;
+  LIB = []; SEL = {}; saveLib(); renderLib(); refreshPreview();
+});
+
+/* ---------- 8. 导出 / 复制 / 送去书写 ---------- */
+function stamp(){
+  var d = new Date(), p = function(n){ return (n < 10 ? "0" : "") + n; };
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" + p(d.getHours()) + p(d.getMinutes());
+}
+function download(name, text){
+  var b = new Blob([text], {type: "text/plain;charset=utf-8"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(b); a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 5000);
+}
+
+function currentGcode(){
+  if(!LAST || !LAST.res.items.length) return "";
+  return toGcode(LAST.res.items, LAST.o);
+}
+
+$("btnExport").addEventListener("click", function(){
+  var g = currentGcode();
+  if(!g){ toast("先输入文字"); return; }
+  download("排版_" + stamp() + ".gcode", g);
+  toast("已导出 " + LAST.res.items.length + " 个字");
+});
+
+$("btnCopy").addEventListener("click", function(){
+  var g = currentGcode();
+  if(!g) return;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(g).then(function(){ toast("已复制到剪贴板"); },
+      function(){ toast("复制失败，请用「导出」"); });
+  }else{ toast("这个浏览器不支持剪贴板，请用「导出」"); }
+});
+
+/* 送去书写：直接载入第 5 步（同一页，不再跳文件） */
+$("btnToWB").addEventListener("click", function(){
+  var g = currentGcode();
+  if(!g){ toast("先输入文字"); return; }
+  if(document.querySelector(".panel#p5"))
+    loadGcode(g, "字库排版 · " + LAST.res.items.length + " 字");
+  goStep(5);
+  toast("已载入第 5 步，确认机器位置后点「书写」");
+});
+
+/* ---------- 9. 启动 ---------- */
+var PKEY = "zg_type_params_v1";
+var PIDS = ["pW", "pH", "pFont", "pWord", "pLine", "pTop", "pLeft", "pRight", "pDir", "pAlign",
+            "pJit", "pDownZ", "pUpZ", "pFeed", "splitMm"];
+PIDS.forEach(function(id){
+  var el = $(id); if(!el) return;
+  el.addEventListener("change", function(){
+    var o = {}; PIDS.forEach(function(k){ if($(k)) o[k] = $(k).value; });
+    try{ localStorage.setItem(PKEY, JSON.stringify(o)); }catch(e){}
+    refreshPreview();
+  });
+});
+(function(){
+  try{
+    var raw = localStorage.getItem(PKEY); if(!raw) return;
+    var o = JSON.parse(raw);
+    PIDS.forEach(function(k){ if($(k) && (k in o)) $(k).value = o[k]; });
+  }catch(e){}
+})();
+
+$("txt").addEventListener("input", refreshPreview);
+loadLib();
+renderLib();
+refreshPreview();
+
+/* 对外接口 */
+return {
+  gcode: currentGcode,
+  layout: function(){ return LAST; },
+  count: function(){ return LIB.length; }
+};
+})();
+</script>
+</body>
+</html>

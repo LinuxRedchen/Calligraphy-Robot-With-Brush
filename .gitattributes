@@ -1,0 +1,19 @@
+# 统一换行符，避免 Windows/Linux 互拷时 .bat / .sh 被写坏
+* text=auto eol=lf
+
+# Windows 批处理必须是 CRLF，否则 cmd 解析多行括号块会出错
+*.bat text eol=crlf
+
+# Shell 脚本必须是 LF，否则 Git Bash 报 $'\r': command not found
+*.sh  text eol=lf
+
+*.html text eol=lf
+*.md   text eol=lf
+*.py   text eol=lf
+
+# 二进制资源
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary

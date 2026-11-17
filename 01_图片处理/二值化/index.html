@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="孙红晨">
+<meta name="application-name" content="Redchen 书法机器人 · 天工书画一代">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redchen 书法机器人 · 二值化工作台 · BINARIX</title>
+<style>
+  :root{
+    --paper:#f6f3ec;
+    --card:#fffdf8;
+    --ink:#171513;
+    --muted:#7d7367;
+    --line:#e3ddd0;
+    --accent:#c0392b;
+    --accent-soft:#f7e7e3;
+    --shadow:0 1px 2px rgba(24,20,14,.05), 0 10px 30px -16px rgba(24,20,14,.25);
+    --mono:ui-monospace, "Cascadia Mono", "SF Mono", Consolas, monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(rgba(23,21,19,.055) .6px, transparent .6px);
+    background-size:4px 4px;opacity:.5;
+  }
+
+  header{
+    position:relative;z-index:2;display:flex;align-items:center;gap:16px;
+    padding:13px 22px;border-bottom:1px solid var(--line);
+    background:rgba(255,253,248,.82);backdrop-filter:blur(8px);
+  }
+  .brand{display:flex;align-items:baseline;gap:10px}
+  .mark{
+    width:18px;height:18px;border-radius:3px;align-self:center;flex:none;
+    background:linear-gradient(135deg,var(--ink) 0 50%, var(--accent) 50% 100%);
+  }
+  .brand h1{
+    font-family:"Noto Serif SC", Georgia, "Songti SC", "SimSun", serif;
+    font-size:19px;font-weight:700;letter-spacing:.06em;
+  }
+  .brand .sub{font-size:11px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
+  .spacer{flex:1}
+  .kbd-hint{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  kbd{
+    font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--line);
+    border-bottom-width:2px;border-radius:4px;padding:1px 5px;color:#5c5348;
+  }
+
+  button{font-family:inherit;font-size:13px;cursor:pointer;border:none;background:none;color:inherit}
+  .btn{
+    border:1px solid var(--line);background:var(--card);padding:8px 14px;border-radius:8px;
+    font-weight:500;transition:background .15s,border-color .15s,transform .06s;white-space:nowrap;
+  }
+  .btn:hover{background:#fff;border-color:#cfc7b6}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--ink);color:#fbf8f0;border-color:var(--ink)}
+  .btn.primary:hover{background:#2c2723}
+  .btn.accent{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.accent:hover{background:#ad3227}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.small{padding:5px 10px;font-size:12px;border-radius:6px}
+
+  main{position:relative;z-index:1;flex:1;display:flex;min-height:0}
+
+  /* ---------- 画布区 ---------- */
+  .stage{
+    flex:1;min-width:0;position:relative;display:flex;align-items:center;justify-content:center;
+    padding:22px;overflow:hidden;
+  }
+  .frame{
+    position:relative;box-shadow:var(--shadow);border-radius:2px;background:#fff;
+    outline:1px solid rgba(24,20,14,.12);
+  }
+  .frame canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+  #cOrig{position:absolute;inset:0}
+  #cRes{position:absolute;inset:0}
+  .frame.compare #cRes{clip-path:inset(0 0 0 50%)}
+  .divider{
+    position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--accent);
+    display:none;cursor:ew-resize;transform:translateX(-1px);z-index:3;
+  }
+  .frame.compare .divider{display:block}
+  .divider::after{
+    content:"";position:absolute;top:50%;left:50%;width:30px;height:30px;
+    transform:translate(-50%,-50%);border-radius:50%;background:var(--accent);
+    box-shadow:0 2px 10px rgba(0,0,0,.25);
+  }
+  .divider::before{
+    content:"";position:absolute;top:50%;left:50%;width:12px;height:2px;z-index:1;
+    transform:translate(-50%,-50%);
+    background:
+      linear-gradient(#fff,#fff) left center/4px 2px no-repeat,
+      linear-gradient(#fff,#fff) right center/4px 2px no-repeat;
+  }
+
+  .empty{
+    position:absolute;inset:22px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:16px;
+    border:2px dashed #d5cdbb;border-radius:14px;color:var(--muted);
+    transition:border-color .2s,background .2s;
+  }
+  .empty.hot{border-color:var(--accent);background:rgba(192,57,43,.04)}
+  .empty svg{opacity:.55}
+  .empty .t{font-size:15px;color:#4a423a;font-weight:500}
+  .empty .d{font-size:12.5px;text-align:center;line-height:1.7}
+
+  .drop-overlay{
+    position:absolute;inset:0;z-index:9;display:none;
+    background:rgba(246,243,236,.86);border:2px dashed var(--accent);
+    align-items:center;justify-content:center;font-size:15px;color:var(--accent);
+    font-weight:600;letter-spacing:.05em;
+  }
+  .drop-overlay.on{display:flex}
+
+  .stagebar{
+    position:absolute;bottom:8px;left:22px;right:22px;
+    display:flex;gap:14px;align-items:center;font-size:11.5px;color:var(--muted);
+    font-family:var(--mono);pointer-events:none;
+  }
+  .stagebar span{white-space:nowrap}
+  .dot{width:6px;height:6px;border-radius:50%;background:#4a9d5f;display:inline-block;margin-right:5px}
+
+  /* ---------- 控制面板 ---------- */
+  aside{
+    width:382px;flex:none;border-left:1px solid var(--line);
+    background:var(--card);display:flex;flex-direction:column;min-height:0;
+  }
+  .panel-scroll{flex:1;overflow-y:auto;padding:16px 16px 8px}
+  .panel-scroll::-webkit-scrollbar{width:9px}
+  .panel-scroll::-webkit-scrollbar-thumb{background:#ded6c6;border-radius:9px;border:2px solid var(--card)}
+
+  .sec{margin-bottom:20px}
+  .sec-h{
+    display:flex;align-items:center;gap:8px;
+    font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin-bottom:10px;
+  }
+  .sec-h::after{content:"";flex:1;height:1px;background:var(--line)}
+  .sec-h .tag{
+    letter-spacing:0;text-transform:none;font-size:10px;color:#a1968a;
+    border:1px solid var(--line);border-radius:10px;padding:0 6px;font-weight:500;
+  }
+
+  /* 算法卡片（带缩略预览） */
+  .algos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .algo{
+    text-align:left;border:1px solid var(--line);background:#fff;border-radius:9px;
+    overflow:hidden;transition:border-color .14s,box-shadow .14s;position:relative;padding:0;
+  }
+  .algo .thumb{
+    display:block;width:100%;aspect-ratio:5/2;background:#f4efe4;
+    border-bottom:1px solid #f0ebdf;
+  }
+  .algo .meta{padding:5px 8px 7px;background:#fff;transition:background .14s}
+  .algo b{display:block;font-size:12px;font-weight:600;letter-spacing:.01em;line-height:1.3}
+  .algo small{display:block;font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3}
+  .algo:hover{border-color:#c9c0ae;box-shadow:0 2px 8px -4px rgba(0,0,0,.2)}
+  .algo.on{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+  .algo.on .meta{background:var(--ink);color:#fbf8f0}
+  .algo.on small{color:#b2a89a}
+  .algo.on::after{
+    content:"";position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 0 2px rgba(255,255,255,.85);
+  }
+
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:2px}
+  .row label{font-size:12.5px;color:#3d372f;font-weight:500}
+  .val{
+    font-family:var(--mono);font-size:11.5px;color:var(--accent);
+    background:var(--accent-soft);padding:1px 6px;border-radius:4px;min-width:42px;text-align:center;
+  }
+  .pgroup{margin-bottom:13px}
+  .pgroup:last-child{margin-bottom:0}
+  .pgroup.hide{display:none}
+  .hidden{display:none!important}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:3px;border-radius:3px;
+    background:#e6dfd0;outline:none;margin:8px 0 1px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--ink);border:3px solid #fff;box-shadow:0 0 0 1px #cfc7b6;cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:12px;height:12px;border-radius:50%;background:var(--ink);
+    border:3px solid #fff;box-shadow:0 0 0 1px #cfc7b6;cursor:pointer;
+  }
+  .scale{display:flex;justify-content:space-between;font-size:10px;color:#a89e90;font-family:var(--mono)}
+
+  .switch{display:flex;align-items:center;justify-content:space-between;padding:6px 0;gap:12px}
+  .switch label{font-size:12.5px;color:#3d372f;cursor:pointer;flex:1}
+  .switch .hint{display:block;font-size:10.5px;color:var(--muted);margin-top:1px}
+  .sw{
+    width:34px;height:19px;border-radius:20px;background:#e0d9ca;position:relative;
+    cursor:pointer;transition:background .18s;flex:none;
+  }
+  .sw::after{
+    content:"";position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .18s;
+  }
+  .sw.on{background:var(--ink)}
+  .sw.on::after{transform:translateX(15px)}
+
+  .presets{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{
+    border:1px solid var(--line);background:#fff;border-radius:20px;
+    padding:4px 11px;font-size:11.5px;color:#4a423a;transition:all .14s;
+  }
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+
+  .hist-wrap{border:1px solid var(--line);border-radius:9px;background:#fff;padding:8px 9px 4px}
+  #hist{width:100%;height:62px;display:block}
+  .hist-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .stat{background:#fff;padding:7px 10px}
+  .stat .k{font-size:10px;color:var(--muted);letter-spacing:.05em}
+  .stat .v{font-family:var(--mono);font-size:12.5px;margin-top:2px}
+
+  footer{border-top:1px solid var(--line);padding:11px 16px;display:flex;gap:8px;background:var(--card)}
+  footer .btn{flex:1;text-align:center}
+
+  aside.locked .panel-scroll{opacity:.42;pointer-events:none;filter:grayscale(.4)}
+  aside.locked footer{opacity:.42;pointer-events:none}
+
+  @media (max-width:900px){
+    main{flex-direction:column}
+    aside{width:100%;border-left:none;border-top:1px solid var(--line);max-height:46vh}
+    .stage{min-height:34vh}
+    .kbd-hint{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="mark"></div>
+    <div>
+      <h1>二值化工作台</h1>
+      <div class="sub">Binarization Studio</div>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="kbd-hint"><kbd>Ctrl</kbd><kbd>V</kbd> 粘贴图片</div>
+  <button class="btn small" id="btnDemo">示例图</button>
+  <button class="btn primary" id="btnUpload">选择图片</button>
+  <input type="file" id="fileInput" accept="image/*" hidden>
+
+  <div style="margin-left:auto;text-align:right;font:11.5px/1.5 'PingFang SC','Microsoft YaHei',sans-serif;color:#8a8378;letter-spacing:.3px">
+    <div style="color:#232220;font-weight:600;font-size:12px">Redchen 书法机器人</div>
+    <div><span style="font-family:KaiTi,STKaiti,serif;letter-spacing:1px">天工书画一代</span>　By 孙红晨</div>
+  </div>
+</header>
+
+<main>
+  <section class="stage" id="stage">
+    <div class="frame" id="frame" style="display:none">
+      <canvas id="cOrig"></canvas>
+      <canvas id="cRes"></canvas>
+      <div class="divider" id="divider"></div>
+    </div>
+
+    <div class="empty" id="empty">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#8d8375" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <circle cx="8.5" cy="8.5" r="1.6"/>
+        <path d="M21 15l-5-5L5 21"/>
+      </svg>
+      <div class="t">把图片拖到这里</div>
+      <div class="d">支持 PNG / JPG / WebP / BMP · 全程在本地浏览器处理<br>图片不会上传到任何服务器</div>
+      <button class="btn" id="btnUpload2" style="padding:8px 18px">从电脑选择</button>
+    </div>
+
+    <div class="drop-overlay" id="dropOverlay">松手即可载入图片</div>
+
+    <div class="stagebar" id="stagebar" style="display:none">
+      <span><i class="dot"></i><span id="infoSize">—</span></span>
+      <span id="infoTime">—</span>
+      <span id="infoBlack">—</span>
+      <span id="infoAlgo" style="margin-left:auto"></span>
+    </div>
+  </section>
+
+  <aside id="panel" class="locked">
+    <div class="panel-scroll">
+
+      <div class="sec">
+        <div class="sec-h">算法 <span class="tag">缩略图为默认参数</span></div>
+        <div class="algos" id="algos">
+          <button class="algo on" data-m="otsu">
+            <canvas class="thumb" width="200" height="80"></canvas>
+            <div class="meta"><b>Otsu 全局</b><small>自动最佳阈值</small></div>
+          </button>
+          <button class="algo" data-m="fixed">
+            <canvas class="thumb" width="200" height="80"></canvas>
+            <div class="meta"><b>固定阈值</b><small>手动精确控制</small></div>
+          </button>
+          <button class="algo" data-m="bradley">
+            <canvas class="thumb" width="200" height="80"></canvas>
+            <div class="meta"><b>局部均值</b><small>抗光照不均</small></div>
+          </button>
+          <button class="algo" data-m="niblack">
+            <canvas class="thumb" width="200" height="80"></canvas>
+            <div class="meta"><b>Niblack</b><small>均值+标准差</small></div>
+          </button>
+          <button class="algo" data-m="sauvola">
+            <canvas class="thumb" width="200" height="80"></canvas>
+            <div class="meta"><b>Sauvola</b><small>笔迹保留最好</small></div>
+          </button>
+          <button class="algo" data-m="wolf">
+            <canvas class="thumb" width="200" height="80"></canvas>
+            <div class="meta"><b>Wolf–Jolion</b><small>褪色/低对比</small></div>
+          </button>
+          <button class="algo" data-m="bernsen">
+            <canvas class="thumb" width="200" height="80"></canvas>
+            <div class="meta"><b>Bernsen</b><small>局部极值对比</small></div>
+          </button>
+          <button class="algo" data-m="dither">
+            <canvas class="thumb" width="200" height="80"></canvas>
+            <div class="meta"><b>误差抖动</b><small>照片/插画</small></div>
+          </button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h">参数</div>
+
+        <div class="pgroup" data-p="none">
+          <div style="font-size:11.5px;color:var(--muted);line-height:1.6">
+            阈值由灰度直方图自动计算，使前景与背景的类间方差最大，无需调参。
+          </div>
+        </div>
+
+        <div class="pgroup hide" data-p="threshold">
+          <div class="row"><label>阈值</label><span class="val" id="v-threshold">128</span></div>
+          <input type="range" id="p-threshold" min="0" max="255" value="128">
+          <div class="scale"><span>0 全白</span><span>255 全黑</span></div>
+        </div>
+
+        <div class="pgroup hide" data-p="block">
+          <div class="row"><label>邻域窗口</label><span class="val" id="v-block">31</span></div>
+          <input type="range" id="p-block" min="3" max="151" step="2" value="31">
+          <div class="scale"><span>抓细节</span><span>看整体</span></div>
+        </div>
+
+        <div class="pgroup hide" data-p="C">
+          <div class="row"><label>偏移量 C</label><span class="val" id="v-C">10</span></div>
+          <input type="range" id="p-C" min="-20" max="40" value="10">
+          <div class="scale"><span>更多黑</span><span>更多白</span></div>
+        </div>
+
+        <div class="pgroup hide" data-p="k">
+          <div class="row"><label>灵敏度 k</label><span class="val" id="v-k">0.20</span></div>
+          <input type="range" id="p-k" min="0" max="90" value="20">
+          <div class="scale"><span>0.00 细</span><span>0.90 粗</span></div>
+        </div>
+
+        <div class="pgroup hide" data-p="kn">
+          <div class="row"><label>灵敏度 k</label><span class="val" id="v-kn">-0.20</span></div>
+          <input type="range" id="p-kn" min="-50" max="50" value="-20">
+          <div class="scale"><span>-0.50 干</span><span>0.50 多墨</span></div>
+        </div>
+
+        <div class="pgroup hide" data-p="contrast">
+          <div class="row"><label>对比度门限</label><span class="val" id="v-contrast">15</span></div>
+          <input type="range" id="p-contrast" min="0" max="60" value="15">
+          <div class="scale"><span>保留细节</span><span>更干净</span></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h">预设</div>
+        <div class="presets">
+          <button class="chip" data-preset="shadow">阴影文档</button>
+          <button class="chip" data-preset="faded">褪色文档</button>
+          <button class="chip" data-preset="hand">手写字</button>
+          <button class="chip" data-preset="line">线稿</button>
+          <button class="chip" data-preset="photo">照片</button>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h">图像校正（前置）</div>
+        <div class="switch">
+          <label>光照归一化<span class="hint">消除阴影与拍摄不均，先做这一步往往最有效</span></label>
+          <div class="sw" id="sw-norm"></div>
+        </div>
+        <div class="pgroup hide" data-p="normStrength" style="margin-top:2px">
+          <div class="row"><label>归一化强度</label><span class="val" id="v-normStrength">70</span></div>
+          <input type="range" id="p-normStrength" min="0" max="100" value="70">
+        </div>
+        <div class="switch">
+          <label>对比度拉伸<span class="hint">按 2%–98% 分位重新映射灰度</span></label>
+          <div class="sw" id="sw-stretch"></div>
+        </div>
+        <div class="switch">
+          <label>高斯预模糊<span class="hint">压掉纸纹与传感器噪点</span></label>
+          <div class="sw" id="sw-blur"></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h">噪点过滤（后置）</div>
+        <div class="switch">
+          <label>中值去噪<span class="hint">3×3 中值，抹掉孤立椒盐点</span></label>
+          <div class="sw" id="sw-denoise"></div>
+        </div>
+        <div class="switch">
+          <label>闭运算填孔<span class="hint">3×3 先膨胀后腐蚀，补上笔划里的小白洞</span></label>
+          <div class="sw" id="sw-close"></div>
+        </div>
+        <div class="switch">
+          <label>清除小连通块<span class="hint">面积小于阈值的黑块整体置白</span></label>
+          <div class="sw" id="sw-removeSmall"></div>
+        </div>
+        <div class="pgroup hide" data-p="minArea" style="margin-top:2px">
+          <div class="row"><label>最小保留面积</label><span class="val" id="v-minArea">20</span></div>
+          <input type="range" id="p-minArea" min="2" max="300" value="20">
+          <div class="scale"><span>2 px</span><span>300 px</span></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h">线条顺滑 <span class="tag">骨架描线</span></div>
+        <div class="switch">
+          <label>顺滑成连续曲线<span class="hint">提取笔画中心线并样条平滑，适合涂鸦/线稿描边；文字笔画会变形，请用普通算法</span></label>
+          <div class="sw" id="sw-smoothOn"></div>
+        </div>
+        <div class="pgroup hide" data-p="lineWidth">
+          <div class="row"><label>线宽</label><span class="val" id="v-lineWidth">2.0</span></div>
+          <input type="range" id="p-lineWidth" min="6" max="120" value="20">
+          <div class="scale"><span>细</span><span>粗</span></div>
+        </div>
+        <div class="pgroup hide" data-p="smoothLen">
+          <div class="row"><label>平滑度</label><span class="val" id="v-smoothLen">2</span></div>
+          <input type="range" id="p-smoothLen" min="0" max="6" value="2">
+          <div class="scale"><span>0 贴近原形</span><span>6 极圆润</span></div>
+        </div>
+        <div class="pgroup hide" data-p="gap">
+          <div class="row"><label>断点连接距离</label><span class="val" id="v-gap">6</span></div>
+          <input type="range" id="p-gap" min="0" max="30" value="6">
+          <div class="scale"><span>0 不连</span><span>30 px</span></div>
+        </div>
+        <div class="pgroup hide" data-p="pruneLen">
+          <div class="row"><label>毛刺修剪长度</label><span class="val" id="v-pruneLen">8</span></div>
+          <input type="range" id="p-pruneLen" min="0" max="40" value="8">
+          <div class="scale"><span>0 不剪</span><span>40 px</span></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h">显示</div>
+        <div class="switch">
+          <label>反色<span class="hint">白字黑底</span></label>
+          <div class="sw" id="sw-invert"></div>
+        </div>
+        <div class="switch">
+          <label>原图 / 结果分割对比<span class="hint">开启后拖动画布上的红线</span></label>
+          <div class="sw" id="sw-compare"></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h">灰度直方图</div>
+        <div class="hist-wrap">
+          <canvas id="hist" width="640" height="124"></canvas>
+          <div class="hist-meta"><span>0 暗</span><span id="histT">—</span><span>255 亮</span></div>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h">输出</div>
+        <div class="stats">
+          <div class="stat"><div class="k">预览尺寸</div><div class="v" id="s-prev">—</div></div>
+          <div class="stat"><div class="k">处理耗时</div><div class="v" id="s-time">—</div></div>
+          <div class="stat"><div class="k">黑色占比</div><div class="v" id="s-black">—</div></div>
+          <div class="stat"><div class="k">实际阈值</div><div class="v" id="s-thr">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <button class="btn small" id="btnReset">重置</button>
+      <button class="btn small hidden" id="btnSvg">下载 SVG</button>
+      <button class="btn accent" id="btnDownload">下载 PNG</button>
+    </footer>
+  </aside>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+  const els = {
+    stage: $('stage'), frame: $('frame'), cOrig: $('cOrig'), cRes: $('cRes'),
+    divider: $('divider'), empty: $('empty'), dropOverlay: $('dropOverlay'),
+    fileInput: $('fileInput'), panel: $('panel'), hist: $('hist'),
+    stagebar: $('stagebar'),
+  };
+
+  const state = {
+    src: null, prev: null, srcId: 0,
+    method: 'otsu',
+    opts: {
+      threshold: 128, block: 31, C: 10, k: 0.20, kn: -0.20, contrast: 15,
+      norm: false, normStrength: 70, stretch: false, blur: false,
+      denoise: false, close: false, removeSmall: false, minArea: 20,
+      smoothOn: false, lineWidth: 2, smoothLen: 2, gap: 6, pruneLen: 8,
+      invert: false, compare: false,
+    },
+    split: 50,
+    cache: { key: '', gray: null },
+  };
+
+  // 每种算法的默认参数（用于缩略图预览）
+  const DEFAULTS = {
+    otsu:    { threshold: 128 },
+    fixed:   { threshold: 128 },
+    bradley: { block: 31, C: 10 },
+    niblack: { block: 31, kn: -0.20 },
+    sauvola: { block: 31, k: 0.20 },
+    wolf:    { block: 31, k: 0.30 },
+    bernsen: { block: 31, contrast: 15 },
+    dither:  { threshold: 128 },
+  };
+
+  // 每种算法需要显示哪些参数控件
+  const NEEDS = {
+    otsu: ['none'],
+    fixed: ['threshold'],
+    bradley: ['block', 'C'],
+    niblack: ['block', 'kn'],
+    sauvola: ['block', 'k'],
+    wolf: ['block', 'k'],
+    bernsen: ['block', 'contrast'],
+    dither: ['threshold'],
+  };
+
+  // ---------------- 基础工具 ----------------
+
+  function toGray(imgData){
+    const d = imgData.data, n = imgData.width * imgData.height;
+    const g = new Uint8Array(n);
+    for(let i=0, p=0; i<n; i++, p+=4){
+      g[i] = (0.299*d[p] + 0.587*d[p+1] + 0.114*d[p+2] + 0.5) | 0;
+    }
+    return g;
+  }
+
+  function integral(gray, w, h){
+    const W = w+1;
+    const s = new Float64Array(W*(h+1));
+    const q = new Float64Array(W*(h+1));
+    for(let y=0;y<h;y++){
+      let rs = 0, rq = 0;
+      const yo = (y+1)*W, yp = y*W;
+      for(let x=0;x<w;x++){
+        const v = gray[y*w+x];
+        rs += v; rq += v*v;
+        s[yo+x+1] = s[yp+x+1] + rs;
+        q[yo+x+1] = q[yp+x+1] + rq;
+      }
+    }
+    return {s, q, W};
+  }
+
+  // ---------------- 前置校正 ----------------
+
+  // 可分离二项式高斯（rad=1 → 3x3, rad=2 → 5x5）
+  function gaussBlur(g, w, h, rad){
+    const k = rad === 1 ? [1,2,1] : [1,4,6,4,1];
+    const kn = k.reduce((a,b)=>a+b,0);
+    const tmp = new Uint8Array(w*h);
+    const out = new Uint8Array(w*h);
+    const r = rad;
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let acc = 0;
+        for(let d=-r; d<=r; d++){
+          let xx = x+d;
+          if(xx<0) xx = 0; else if(xx>=w) xx = w-1;
+          acc += g[y*w+xx] * k[d+r];
+        }
+        tmp[y*w+x] = (acc/kn)|0;
+      }
+    }
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let acc = 0;
+        for(let d=-r; d<=r; d++){
+          let yy = y+d;
+          if(yy<0) yy = 0; else if(yy>=h) yy = h-1;
+          acc += tmp[yy*w+x] * k[d+r];
+        }
+        out[y*w+x] = (acc/kn)|0;
+      }
+    }
+    return out;
+  }
+
+  // 背景估计 + 除法：把局部大窗口均值当作纸面亮度
+  function normalizeBg(g, w, h, strength){
+    const {s, W} = integral(g, w, h);
+    const r = Math.max(10, Math.round(Math.min(w, h) / 8));
+    const out = new Uint8Array(w*h);
+    const a = strength / 100;
+    for(let y=0;y<h;y++){
+      const y0 = y-r < 0 ? 0 : y-r;
+      const y1 = y+r+1 > h ? h : y+r+1;
+      const y0W = y0*W, y1W = y1*W;
+      for(let x=0;x<w;x++){
+        const x0 = x-r < 0 ? 0 : x-r;
+        const x1 = x+r+1 > w ? w : x+r+1;
+        const area = (y1-y0)*(x1-x0);
+        const sum = s[y1W+x1] - s[y0W+x1] - s[y1W+x0] + s[y0W+x0];
+        const bg = Math.max(8, sum/area);
+        let v = g[y*w+x] / bg * 205;
+        if(v > 255) v = 255;
+        const i = y*w+x;
+        out[i] = g[i]*(1-a) + v*a + 0.5;
+      }
+    }
+    return out;
+  }
+
+  // 2% / 98% 分位线性拉伸
+  function stretchContrast(g, w, h){
+    const hist = new Int32Array(256);
+    for(let i=0;i<g.length;i++) hist[g[i]]++;
+    const total = g.length;
+    const cut = total * 0.02;
+    let lo = 0, hi = 255, acc = 0;
+    for(let i=0;i<256;i++){ acc += hist[i]; if(acc >= cut){ lo = i; break; } }
+    acc = 0;
+    for(let i=255;i>=0;i--){ acc += hist[i]; if(acc >= cut){ hi = i; break; } }
+    if(hi - lo < 8) return g;
+    const out = new Uint8Array(g.length);
+    const scale = 255 / (hi - lo);
+    for(let i=0;i<g.length;i++){
+      let v = (g[i] - lo) * scale;
+      if(v < 0) v = 0; else if(v > 255) v = 255;
+      out[i] = v + 0.5;
+    }
+    return out;
+  }
+
+  function preprocess(gray, w, h, o){
+    let g = gray;
+    if(o.blur) g = gaussBlur(g, w, h, 1);
+    if(o.norm) g = normalizeBg(g, w, h, o.normStrength);
+    if(o.stretch) g = stretchContrast(g, w, h);
+    return g;
+  }
+
+  // ---------------- 阈值算法 ----------------
+
+  function otsu(gray){
+    const hist = new Float64Array(256);
+    for(let i=0;i<gray.length;i++) hist[gray[i]]++;
+    const total = gray.length;
+    let sum = 0;
+    for(let t=0;t<256;t++) sum += t*hist[t];
+
+    let sumB = 0, wB = 0, best = 0, thr = 127;
+    for(let t=0;t<256;t++){
+      wB += hist[t];
+      if(wB === 0) continue;
+      const wF = total - wB;
+      if(wF === 0) break;
+      sumB += t*hist[t];
+      const mB = sumB/wB, mF = (sum-sumB)/wF;
+      const between = wB*wF*(mB-mF)*(mB-mF);
+      if(between > best){ best = between; thr = t; }
+    }
+    return thr;
+  }
+
+  // 滑窗 min/max（单调队列，水平 + 垂直分离，O(n)）
+  function slidingMinMax(g, w, h, r){
+    r = Math.max(0, Math.min(r, w-1, h-1));
+    const bufs = {
+      minH: new Uint8Array(w*h), maxH: new Uint8Array(w*h),
+      min: new Uint8Array(w*h),  max: new Uint8Array(w*h),
+    };
+    const cap = Math.max(w, h) + 2;
+    const qmin = new Int32Array(cap), qmax = new Int32Array(cap);
+
+    // 水平
+    for(let y=0;y<h;y++){
+      const base = y*w;
+      let hmin = 0, tmin = 0, hmax = 0, tmax = 0;
+      for(let x=0;x<w;x++){
+        const add = x + r;
+        if(add < w){
+          const va = g[base+add];
+          while(tmin > hmin && g[base+qmin[tmin-1]] >= va) tmin--;
+          qmin[tmin++] = add;
+          while(tmax > hmax && g[base+qmax[tmax-1]] <= va) tmax--;
+          qmax[tmax++] = add;
+        }
+        const rem = x - r - 1;
+        if(rem >= 0){
+          if(hmin < tmin && qmin[hmin] === rem) hmin++;
+          if(hmax < tmax && qmax[hmax] === rem) hmax++;
+        }
+        bufs.minH[base+x] = g[base+qmin[hmin]];
+        bufs.maxH[base+x] = g[base+qmax[hmax]];
+      }
+    }
+    // 垂直
+    for(let x=0;x<w;x++){
+      let hmin = 0, tmin = 0, hmax = 0, tmax = 0;
+      for(let y=0;y<h;y++){
+        const add = y + r;
+        if(add < h){
+          const va = bufs.minH[add*w+x], vb = bufs.maxH[add*w+x];
+          while(tmin > hmin && bufs.minH[qmin[tmin-1]*w+x] >= va) tmin--;
+          qmin[tmin++] = add;
+          while(tmax > hmax && bufs.maxH[qmax[tmax-1]*w+x] <= vb) tmax--;
+          qmax[tmax++] = add;
+        }
+        const rem = y - r - 1;
+        if(rem >= 0){
+          if(hmin < tmin && qmin[hmin] === rem) hmin++;
+          if(hmax < tmax && qmax[hmax] === rem) hmax++;
+        }
+        bufs.min[y*w+x] = bufs.minH[qmin[hmin]*w+x];
+        bufs.max[y*w+x] = bufs.maxH[qmax[hmax]*w+x];
+      }
+    }
+    return bufs;
+  }
+
+  // 局部类算法：mean / niblack / sauvola / wolf 共用积分图
+  function localAlgo(gray, w, h, block, param, mode){
+    const {s, q, W} = integral(gray, w, h);
+    const out = new Uint8Array(w*h);
+    const r = Math.max(1, (block/2)|0);
+
+    let Mmin = 255;
+    if(mode === 'wolf'){
+      for(let i=0;i<gray.length;i++) if(gray[i] < Mmin) Mmin = gray[i];
+    }
+
+    for(let y=0;y<h;y++){
+      const y0 = y-r < 0 ? 0 : y-r;
+      const y1 = y+r+1 > h ? h : y+r+1;
+      const y0W = y0*W, y1W = y1*W;
+      for(let x=0;x<w;x++){
+        const x0 = x-r < 0 ? 0 : x-r;
+        const x1 = x+r+1 > w ? w : x+r+1;
+        const area = (y1-y0)*(x1-x0);
+        const ssum = s[y1W+x1] - s[y0W+x1] - s[y1W+x0] + s[y0W+x0];
+        const mean = ssum/area;
+        let t;
+
+        if(mode === 'mean'){
+          t = mean - param;
+        } else {
+          const qsum = q[y1W+x1] - q[y0W+x1] - q[y1W+x0] + q[y0W+x0];
+          let varr = qsum/area - mean*mean;
+          if(varr < 0) varr = 0;
+          const std = Math.sqrt(varr);
+
+          if(mode === 'niblack'){
+            t = mean + param * std;                 // param 通常为负
+          } else if(mode === 'sauvola'){
+            t = mean * (1 + param * (std/128 - 1));
+          } else { // wolf: 用 (m - Mmin) 补偿低对比度
+            t = mean + param * (std/128 - 1) * (mean - Mmin);
+          }
+        }
+        const v = gray[y*w+x];
+        out[y*w+x] = v > t ? 255 : 0;
+      }
+    }
+    return out;
+  }
+
+  function bernsen(gray, w, h, block, contrastThr){
+    const r = Math.max(1, (block/2)|0);
+    const {min, max} = slidingMinMax(gray, w, h, r);
+    const out = new Uint8Array(w*h);
+    for(let i=0;i<out.length;i++){
+      const lo = min[i], hi = max[i];
+      if(hi - lo < contrastThr){
+        out[i] = 255;                    // 对比度不足，判为背景
+      } else {
+        const mid = (lo + hi) * 0.5;
+        out[i] = gray[i] > mid ? 255 : 0;
+      }
+    }
+    return out;
+  }
+
+  function floydSteinberg(gray, w, h, thr){
+    const buf = Float32Array.from(gray);
+    const out = new Uint8Array(w*h);
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const i = y*w+x;
+        const old = buf[i];
+        const nv = old < thr ? 0 : 255;
+        out[i] = nv;
+        const err = old - nv;
+        if(x+1 < w) buf[i+1] += err * 7/16;
+        if(y+1 < h){
+          const b = i+w;
+          if(x > 0) buf[b-1] += err * 3/16;
+          buf[b] += err * 5/16;
+          if(x+1 < w) buf[b+1] += err * 1/16;
+        }
+      }
+    }
+    return out;
+  }
+
+  function binarize(gray, w, h, method, o){
+    let mask, thr = null;
+    switch(method){
+      case 'fixed':
+        thr = o.threshold;
+        mask = new Uint8Array(w*h);
+        for(let i=0;i<mask.length;i++) mask[i] = gray[i] > thr ? 255 : 0;
+        break;
+      case 'otsu':
+        thr = otsu(gray);
+        mask = new Uint8Array(w*h);
+        for(let i=0;i<mask.length;i++) mask[i] = gray[i] > thr ? 255 : 0;
+        break;
+      case 'bradley':
+        mask = localAlgo(gray, w, h, o.block, o.C, 'mean');
+        break;
+      case 'niblack':
+        mask = localAlgo(gray, w, h, o.block, o.kn, 'niblack');
+        break;
+      case 'sauvola':
+        mask = localAlgo(gray, w, h, o.block, o.k, 'sauvola');
+        break;
+      case 'wolf':
+        mask = localAlgo(gray, w, h, o.block, o.k, 'wolf');
+        break;
+      case 'bernsen':
+        mask = bernsen(gray, w, h, o.block, o.contrast);
+        break;
+      case 'dither':
+        thr = o.threshold;
+        mask = floydSteinberg(gray, w, h, thr);
+        break;
+      default:
+        mask = new Uint8Array(w*h).fill(255);
+    }
+    return {mask, thr};
+  }
+
+  // ---------------- 噪点过滤 ----------------
+
+  // 3x3 中值（只有两值，数黑点即可）
+  function medianMask(mask, w, h){
+    const out = new Uint8Array(mask.length);
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        let dark = 0;
+        for(let dy=-1;dy<=1;dy++){
+          const yy = y+dy;
+          if(yy<0||yy>=h) continue;
+          const base = yy*w;
+          for(let dx=-1;dx<=1;dx++){
+            const xx = x+dx;
+            if(xx<0||xx>=w) continue;
+            if(mask[base+xx] === 0) dark++;
+          }
+        }
+        out[y*w+x] = dark >= 5 ? 0 : 255;
+      }
+    }
+    return out;
+  }
+
+  // 形态学闭运算（膨胀黑 → 腐蚀黑），边界像素保持原值
+  function closeMask(mask, w, h){
+    const dil = new Uint8Array(mask);
+    for(let y=1;y<h-1;y++){
+      for(let x=1;x<w-1;x++){
+        const i = y*w+x;
+        if(mask[i] === 0) continue;
+        if(mask[i-1]===0 || mask[i+1]===0 || mask[i-w]===0 || mask[i+w]===0 ||
+           mask[i-w-1]===0 || mask[i-w+1]===0 || mask[i+w-1]===0 || mask[i+w+1]===0){
+          dil[i] = 0;
+        }
+      }
+    }
+    const ero = new Uint8Array(dil);
+    for(let y=1;y<h-1;y++){
+      for(let x=1;x<w-1;x++){
+        const i = y*w+x;
+        if(dil[i] === 255) continue;
+        if(dil[i-1]===255 || dil[i+1]===255 || dil[i-w]===255 || dil[i+w]===255 ||
+           dil[i-w-1]===255 || dil[i-w+1]===255 || dil[i+w-1]===255 || dil[i+w+1]===255){
+          ero[i] = 255;
+        }
+      }
+    }
+    return ero;
+  }
+
+  // 清除面积小于 minArea 的黑色连通块（4 邻接）
+  function removeSmall(mask, w, h, minArea){
+    const out = new Uint8Array(mask);
+    const seen = new Uint8Array(w*h);
+    const stack = new Int32Array(w*h);
+    const members = new Int32Array(w*h);
+
+    for(let i=0;i<mask.length;i++){
+      if(mask[i] !== 0 || seen[i]) continue;
+      let sp = 0, cnt = 0;
+      stack[sp++] = i; seen[i] = 1;
+      while(sp > 0){
+        const p = stack[--sp];
+        members[cnt++] = p;
+        const x = p % w, y = (p / w) | 0;
+        if(x > 0   && mask[p-1] === 0 && !seen[p-1]){ seen[p-1] = 1; stack[sp++] = p-1; }
+        if(x < w-1 && mask[p+1] === 0 && !seen[p+1]){ seen[p+1] = 1; stack[sp++] = p+1; }
+        if(y > 0   && mask[p-w] === 0 && !seen[p-w]){ seen[p-w] = 1; stack[sp++] = p-w; }
+        if(y < h-1 && mask[p+w] === 0 && !seen[p+w]){ seen[p+w] = 1; stack[sp++] = p+w; }
+      }
+      if(cnt < minArea){
+        for(let k=0;k<cnt;k++) out[members[k]] = 255;
+      }
+    }
+    return out;
+  }
+
+  function postprocess(mask, w, h, o){
+    if(o.close) mask = closeMask(mask, w, h);
+    if(o.denoise) mask = medianMask(mask, w, h);
+    if(o.removeSmall && o.minArea > 0) mask = removeSmall(mask, w, h, o.minArea);
+    return mask;
+  }
+
+  // ---------------- 线条顺滑：骨架描线 ----------------
+
+  const NB8 = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+
+  // 8 邻域度数（仅调试用）
+  function degrees(m, w, h){
+    const deg = new Uint8Array(w*h);
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const i = y*w+x;
+        if(m[i] !== 0) continue;
+        let d = 0;
+        for(let k=0;k<8;k++){
+          const xx = x+NB8[k][0], yy = y+NB8[k][1];
+          if(xx>=0 && xx<w && yy>=0 && yy<h && m[yy*w+xx] === 0) d++;
+        }
+        deg[i] = d;
+      }
+    }
+    return deg;
+  }
+
+  // Zhang-Suen 细化：把笔画压成 1px 宽的中心线
+  function skeletonize(mask, w, h){
+    const img = new Uint8Array(w*h);
+    for(let i=0;i<mask.length;i++) img[i] = mask[i] < 128 ? 1 : 0;
+
+    let changed = true, guard = 0;
+    const del = [];
+    while(changed && guard++ < 300){
+      changed = false;
+      for(let step=0; step<2; step++){
+        del.length = 0;
+        for(let y=1;y<h-1;y++){
+          const b = y*w;
+          for(let x=1;x<w-1;x++){
+            const i = b+x;
+            if(!img[i]) continue;
+            const p2 = img[i-w], p3 = img[i-w+1], p4 = img[i+1], p5 = img[i+w+1];
+            const p6 = img[i+w], p7 = img[i+w-1], p8 = img[i-1], p9 = img[i-w-1];
+
+            const B = p2+p3+p4+p5+p6+p7+p8+p9;
+            if(B < 2 || B > 6) continue;
+
+            const A = (p2===0&&p3===1?1:0) + (p3===0&&p4===1?1:0) +
+                      (p4===0&&p5===1?1:0) + (p5===0&&p6===1?1:0) +
+                      (p6===0&&p7===1?1:0) + (p7===0&&p8===1?1:0) +
+                      (p8===0&&p9===1?1:0) + (p9===0&&p2===1?1:0);
+            if(A !== 1) continue;
+
+            if(step === 0){
+              if(p2*p4*p6 !== 0) continue;
+              if(p4*p6*p8 !== 0) continue;
+            } else {
+              if(p2*p4*p8 !== 0) continue;
+              if(p2*p6*p8 !== 0) continue;
+            }
+            del.push(i);
+          }
+        }
+        for(let k=0;k<del.length;k++) img[del[k]] = 0;
+        if(del.length) changed = true;
+      }
+    }
+
+    const out = new Uint8Array(w*h);
+    for(let i=0;i<out.length;i++) out[i] = img[i] ? 0 : 255;
+    return out;
+  }
+
+  // 把骨架抽成一条条"主干线"：
+  // 对每个连通块，用两次 BFS 找最远点对，再走最短路 —— 天然绕开毛刺，
+  // 也不受细化阶梯（2px 宽台阶）影响，比按度数找分支稳得多。
+  function extractStrokes(mask, w, h, minLen){
+    const N = w*h;
+    const visited = new Uint8Array(N);
+    const paths = [];
+    const nbuf = [];
+    let guard = 0;
+
+    function neighbors(p){
+      nbuf.length = 0;
+      const x = p % w, y = (p / w) | 0;
+      for(let k=0;k<8;k++){
+        const xx = x + NB8[k][0], yy = y + NB8[k][1];
+        if(xx < 0 || xx >= w || yy < 0 || yy >= h) continue;
+        const q = yy*w + xx;
+        if(mask[q] === 0) nbuf.push(q);
+      }
+      return nbuf;
+    }
+
+    // 按方向连续性前进：每步选与上一步夹角最小的未访问邻居，
+    // 这样在细化的"阶梯"上也能顺着笔画走，不会被 2px 台阶带偏。
+    function walk(start, first){
+      const path = [start];
+      visited[start] = 1;
+      let prev = start, cur = first;
+
+      while(cur >= 0 && !visited[cur]){
+        visited[cur] = 1;
+        path.push(cur);
+        if(guard++ > N * 4) break;
+
+        const px = prev % w, py = (prev / w) | 0;
+        const cx = cur % w, cy = (cur / w) | 0;
+        const dx = cx - px, dy = cy - py;
+        const dl = Math.hypot(dx, dy) || 1;
+
+        neighbors(cur);
+        let best = -1, bestDot = -2;
+        for(let i=0;i<nbuf.length;i++){
+          const q = nbuf[i];
+          if(q === prev || visited[q]) continue;
+          const qx = q % w, qy = (q / w) | 0;
+          const dot = (dx * (qx - cx) + dy * (qy - cy)) / dl;
+          if(dot > bestDot){ bestDot = dot; best = q; }
+        }
+        if(best < 0) break;
+        prev = cur;
+        cur = best;
+      }
+      return path;
+    }
+
+    for(let i=0;i<N;i++){
+      if(mask[i] !== 0 || visited[i]) continue;
+      neighbors(i);
+      if(nbuf.length === 0){ visited[i] = 1; continue; }
+      const firstNb = nbuf[0];
+      const nbCopy = nbuf.slice();
+      const head = walk(i, firstNb);
+
+      let tail = [];
+      for(let k=0;k<nbCopy.length;k++){
+        if(!visited[nbCopy[k]]){
+          tail = walk(i, nbCopy[k]);
+          break;
+        }
+      }
+
+      const full = head.slice().reverse();
+      for(let k=1;k<tail.length;k++) full.push(tail[k]);
+      if(full.length >= minLen) paths.push(full);
+    }
+    return paths;
+  }
+
+  // 端点拼接：两条线端头距离小于 maxGap 就接成一条（也用来把闭环补圆）
+  function joinPaths(paths, w, h, maxGap){
+    if(maxGap <= 0 || paths.length < 2) return paths;
+    const list = paths.map(p => p.slice());
+    let merged = true, guard = 0;
+
+    while(merged && guard++ < 200){
+      merged = false;
+      outer:
+      for(let i=0;i<list.length;i++){
+        const A = list[i];
+        for(let j=i+1;j<list.length;j++){
+          const B = list[j];
+          const ax = A[0] % w, ay = (A[0]/w)|0;
+          const az = A[A.length-1] % w, az2 = (A[A.length-1]/w)|0;
+          const bx = B[0] % w, by = (B[0]/w)|0;
+          const bz = B[B.length-1] % w, bz2 = (B[B.length-1]/w)|0;
+
+          const d = [
+            [Math.hypot(az-bx, az2-by), 0, 0],
+            [Math.hypot(az-bz, az2-bz2), 0, 1],
+            [Math.hypot(ax-bx, ay-by), 1, 0],
+            [Math.hypot(ax-bz, ay-bz2), 1, 1],
+          ];
+
+          let best = null;
+          for(const c of d) if(c[0] <= maxGap && (!best || c[0] < best[0])) best = c;
+          if(!best) continue;
+
+          let na = best[1] ? A.slice().reverse() : A.slice();
+          let nb = best[2] ? B.slice().reverse() : B.slice();
+          list[i] = na.concat(nb);
+          list.splice(j, 1);
+          merged = true;
+          break outer;
+        }
+      }
+    }
+    return list;
+  }
+
+
+  // Douglas-Peucker 折线简化
+  function rdp(pts, eps){
+    if(pts.length < 3) return pts;
+    const keep = new Uint8Array(pts.length);
+    keep[0] = keep[pts.length-1] = 1;
+    const stack = [[0, pts.length-1]];
+
+    while(stack.length){
+      const seg = stack.pop();
+      const a = seg[0], b = seg[1];
+      const p1 = pts[a], p2 = pts[b];
+      const dx = p2.x - p1.x, dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy) || 1;
+      let maxD = -1, idx = -1;
+      for(let i=a+1;i<b;i++){
+        const d = Math.abs((pts[i].x-p1.x)*dy - (pts[i].y-p1.y)*dx) / len;
+        if(d > maxD){ maxD = d; idx = i; }
+      }
+      if(maxD > eps && idx > 0){
+        keep[idx] = 1;
+        stack.push([a, idx], [idx, b]);
+      }
+    }
+    const out = [];
+    for(let i=0;i<pts.length;i++) if(keep[i]) out.push(pts[i]);
+    return out;
+  }
+
+  // 拉普拉斯平滑（端点固定），迭代越多越圆润
+  function relax(pts, iter){
+    if(iter <= 0 || pts.length < 3) return pts;
+    let cur = pts;
+    for(let k=0;k<iter;k++){
+      const out = new Array(cur.length);
+      out[0] = cur[0];
+      out[cur.length-1] = cur[cur.length-1];
+      for(let i=1;i<cur.length-1;i++){
+        out[i] = {
+          x: (cur[i-1].x + 2*cur[i].x + cur[i+1].x) / 4,
+          y: (cur[i-1].y + 2*cur[i].y + cur[i+1].y) / 4
+        };
+      }
+      cur = out;
+    }
+    return cur;
+  }
+
+  // 折线 → 点序列（含简化与平滑）
+  function polishPath(idxPath, w, smoothIter){
+    const pts = [];
+    for(let k=0;k<idxPath.length;k++){
+      const i = idxPath[k];
+      pts.push({ x: (i % w) + 0.5, y: ((i / w) | 0) + 0.5 });
+    }
+    return relax(rdp(pts, 1.1), smoothIter);
+  }
+
+  // Catmull-Rom → 三次贝塞尔，画到 canvas
+  function strokePath(ctx, pts){
+    if(pts.length === 0) return;
+    if(pts.length === 1){
+      ctx.beginPath();
+      ctx.arc(pts[0].x, pts[0].y, ctx.lineWidth/2, 0, Math.PI*2);
+      ctx.fill();
+      return;
+    }
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    if(pts.length === 2){
+      ctx.lineTo(pts[1].x, pts[1].y);
+      ctx.stroke();
+      return;
+    }
+    for(let i=0;i<pts.length-1;i++){
+      const p0 = pts[i-1] || pts[i];
+      const p1 = pts[i];
+      const p2 = pts[i+1];
+      const p3 = pts[i+2] || p2;
+      ctx.bezierCurveTo(
+        p1.x + (p2.x-p0.x)/6, p1.y + (p2.y-p0.y)/6,
+        p2.x - (p3.x-p1.x)/6, p2.y - (p3.y-p1.y)/6,
+        p2.x, p2.y
+      );
+    }
+    ctx.stroke();
+  }
+
+  let lastPaths = null;   // 缓存最近一次描线结果，供 SVG 导出
+
+  // 主流程：细线 → 剪毛刺 → 连断点 → 追踪 → 平滑 → 抗锯齿重绘
+  function smoothToMask(mask, w, h, o){
+    let m = mask;
+    // 先膨胀一圈，把 1~2px 的细缝先黏住，再细化，避免骨架断开
+    const dil = new Uint8Array(mask);
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const i = y*w+x;
+        if(m[i] === 0) continue;
+        let hit = false;
+        for(let k=0;k<8 && !hit;k++){
+          const xx = x+NB8[k][0], yy = y+NB8[k][1];
+          if(xx>=0 && xx<w && yy>=0 && yy<h && m[yy*w+xx] === 0) hit = true;
+        }
+        if(hit) dil[i] = 0;
+      }
+    }
+
+    const sk = skeletonize(dil, w, h);
+    // 毛刺修剪长度用作"最短线段过滤"：短于它的碎片直接丢掉
+    const minLen = Math.max(4, o.pruneLen);
+    const strokes = extractStrokes(sk, w, h, minLen);
+    const joined = joinPaths(strokes, w, h, o.gap);
+    const rawPaths = joined;
+
+    const pol = [];
+    for(const p of rawPaths){
+      if(p.length < 3) continue;
+      pol.push(polishPath(p, w, o.smoothLen));
+    }
+    lastPaths = { paths: pol, w, h, lineWidth: o.lineWidth };
+
+    // 2 倍超采样绘制再缩回，边缘才够顺
+    const S = 2;
+    const big = document.createElement('canvas');
+    big.width = w*S; big.height = h*S;
+    const bctx = big.getContext('2d');
+    bctx.fillStyle = '#fff';
+    bctx.fillRect(0, 0, w*S, h*S);
+    bctx.scale(S, S);
+    bctx.strokeStyle = '#000';
+    bctx.fillStyle = '#000';
+    bctx.lineWidth = o.lineWidth;
+    bctx.lineCap = 'round';
+    bctx.lineJoin = 'round';
+    for(const pts of pol) strokePath(bctx, pts);
+
+    const small = document.createElement('canvas');
+    small.width = w; small.height = h;
+    const sctx = small.getContext('2d', {willReadFrequently:true});
+    sctx.imageSmoothingEnabled = true;
+    sctx.imageSmoothingQuality = 'high';
+    sctx.drawImage(big, 0, 0, w, h);
+
+    const d = sctx.getImageData(0, 0, w, h).data;
+    const out = new Uint8Array(w*h);
+    for(let i=0, p=0; i<out.length; i++, p+=4) out[i] = d[p];
+    return out;
+  }
+
+  // 路径 → SVG path d（坐标按 scale 放大到原图尺寸）
+  function pathsToD(paths, scale){
+    let d = '';
+    const f = v => (Math.round(v*100)/100);
+    for(const pts0 of paths){
+      if(!pts0.length) continue;
+      const pts = pts0.map(p => ({ x: p.x*scale, y: p.y*scale }));
+      d += 'M' + f(pts[0].x) + ' ' + f(pts[0].y);
+      if(pts.length === 1) continue;
+      if(pts.length === 2){
+        d += 'L' + f(pts[1].x) + ' ' + f(pts[1].y);
+        continue;
+      }
+      for(let i=0;i<pts.length-1;i++){
+        const p0 = pts[i-1] || pts[i];
+        const p1 = pts[i];
+        const p2 = pts[i+1];
+        const p3 = pts[i+2] || p2;
+        d += 'C' + f(p1.x + (p2.x-p0.x)/6) + ' ' + f(p1.y + (p2.y-p0.y)/6) +
+             ',' + f(p2.x - (p3.x-p1.x)/6) + ' ' + f(p2.y - (p3.y-p1.y)/6) +
+             ',' + f(p2.x) + ' ' + f(p2.y);
+      }
+    }
+    return d;
+  }
+
+  // ---------------- 渲染 ----------------
+
+  function paint(ctx, mask, w, h, invert){
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+    for(let i=0, p=0; i<mask.length; i++, p+=4){
+      let v = mask[i];
+      if(invert) v = 255 - v;
+      d[p] = d[p+1] = d[p+2] = v;
+      d[p+3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  function processed(){
+    const o = state.opts;
+    const key = [state.srcId, o.blur, o.norm, o.normStrength, o.stretch].join('|');
+    if(state.cache.key === key && state.cache.gray) return state.cache.gray;
+    const g = preprocess(state.prev.gray, state.prev.w, state.prev.h, o);
+    state.cache = {key, gray: g};
+    return g;
+  }
+
+  function render(){
+    if(!state.src) return;
+    const t0 = performance.now();
+    const {w, h} = state.prev;
+    const pg = processed();
+    const res = binarize(pg, w, h, state.method, state.opts);
+    let mask = postprocess(res.mask, w, h, state.opts);
+    if(state.opts.smoothOn){
+      mask = smoothToMask(mask, w, h, state.opts);
+    } else {
+      lastPaths = null;
+    }
+    const dt = performance.now() - t0;
+
+    const c = els.cRes;
+    if(c.width !== w || c.height !== h){ c.width = w; c.height = h; }
+    paint(c.getContext('2d'), mask, w, h, state.opts.invert);
+
+    let black = 0;
+    for(let i=0;i<mask.length;i++) if(mask[i] < 128) black++;
+    if(state.opts.invert) black = mask.length - black;
+    const pct = black / mask.length * 100;
+
+    $('s-prev').textContent = w + '×' + h;
+    $('s-time').textContent = dt.toFixed(1) + ' ms';
+    $('s-black').textContent = pct.toFixed(1) + '%';
+    $('s-thr').textContent = res.thr === null ? '局部' : res.thr;
+
+    $('infoTime').textContent = dt.toFixed(1) + ' ms';
+    $('infoBlack').textContent = '黑像素 ' + pct.toFixed(1) + '%';
+    const cur = document.querySelector('.algo.on b');
+    $('infoAlgo').textContent = cur ? cur.textContent : '';
+
+    drawHist(pg, res.thr);
+  }
+
+  function drawHist(gray, thr){
+    const cv = els.hist;
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0,0,W,H);
+
+    const bins = new Float64Array(256);
+    for(let i=0;i<gray.length;i++) bins[gray[i]]++;
+    let max = 0;
+    for(let i=0;i<256;i++) if(bins[i] > max) max = bins[i];
+    if(max === 0) max = 1;
+
+    const bw = W/256;
+    ctx.fillStyle = '#2b2622';
+    ctx.globalAlpha = .72;
+    for(let i=0;i<256;i++){
+      const hh = (bins[i]/max) * (H-6);
+      ctx.fillRect(i*bw, H-hh, Math.max(bw-0.4, 0.8), hh);
+    }
+    ctx.globalAlpha = 1;
+
+    if(thr !== null && thr !== undefined){
+      const x = (thr+0.5)*bw;
+      ctx.strokeStyle = '#c0392b';
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      ctx.fillStyle = '#c0392b';
+      ctx.beginPath();
+      ctx.moveTo(x-4, 0); ctx.lineTo(x+4, 0); ctx.lineTo(x, 6); ctx.closePath(); ctx.fill();
+      $('histT').textContent = 'T = ' + thr;
+    } else {
+      $('histT').textContent = '局部阈值';
+    }
+  }
+
+  // ---------------- 算法缩略预览 ----------------
+
+  let THUMB = null;   // {gray, w, h}
+
+  function buildThumb(){
+    const {canvas, w, h} = state.src;
+    const TW = 200, TH = 80;
+    // 按 5:2 居中裁切
+    let sx = 0, sy = 0, sw = w, sh = h;
+    if(w / h > 2.5){ sw = h * 2.5; sx = (w - sw)/2; }
+    else { sh = w / 2.5; sy = (h - sh)/2; }
+
+    const c = document.createElement('canvas');
+    c.width = TW; c.height = TH;
+    const ctx = c.getContext('2d', {willReadFrequently:true});
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, TW, TH);
+    const data = ctx.getImageData(0, 0, TW, TH);
+    THUMB = {gray: toGray(data), w: TW, h: TH};
+    renderThumbs();
+  }
+
+  function renderThumbs(){
+    if(!THUMB) return;
+    document.querySelectorAll('.algo').forEach(card => {
+      const m = card.dataset.m;
+      const cv = card.querySelector('canvas.thumb');
+      if(!cv) return;
+      const opts = Object.assign({}, DEFAULTS[m]);
+      const res = binarize(THUMB.gray, THUMB.w, THUMB.h, m, opts);
+      paint(cv.getContext('2d'), res.mask, THUMB.w, THUMB.h, false);
+    });
+  }
+
+  // ---------------- 图片载入 ----------------
+
+  function loadFromBlob(blob){
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); setupImage(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); alert('无法读取这张图片'); };
+    img.src = url;
+  }
+
+  function setupImage(img){
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+    if(!w || !h) return;
+
+    const sc = document.createElement('canvas');
+    sc.width = w; sc.height = h;
+    const sctx = sc.getContext('2d');
+    sctx.fillStyle = '#fff';
+    sctx.fillRect(0,0,w,h);
+    sctx.drawImage(img, 0, 0);
+    state.src = {canvas: sc, w, h};
+    state.srcId++;
+    state.cache = {key:'', gray:null};
+    lastPaths = null;
+
+    const MAX = 1500;
+    const scale = Math.min(1, MAX/Math.max(w,h));
+    const pw = Math.max(1, Math.round(w*scale));
+    const ph = Math.max(1, Math.round(h*scale));
+    const pc = document.createElement('canvas');
+    pc.width = pw; pc.height = ph;
+    const pctx = pc.getContext('2d', {willReadFrequently:true});
+    pctx.imageSmoothingEnabled = true;
+    pctx.imageSmoothingQuality = 'high';
+    pctx.drawImage(sc, 0, 0, pw, ph);
+    const data = pctx.getImageData(0, 0, pw, ph);
+    state.prev = {gray: toGray(data), w: pw, h: ph};
+
+    const oc = els.cOrig;
+    oc.width = pw; oc.height = ph;
+    const octx = oc.getContext('2d');
+    octx.imageSmoothingQuality = 'high';
+    octx.drawImage(sc, 0, 0, pw, ph);
+
+    els.empty.style.display = 'none';
+    els.frame.style.display = 'block';
+    els.stagebar.style.display = 'flex';
+    els.panel.classList.remove('locked');
+    $('infoSize').textContent = w + '×' + h + (scale < 1 ? ' → ' + pw + '×' + ph : '');
+    $('s-prev').textContent = pw + '×' + ph;
+
+    layout();
+    buildThumb();
+    render();
+  }
+
+  function layout(){
+    if(!state.src) return;
+    const box = els.stage.getBoundingClientRect();
+    const pad = 44;
+    const aw = Math.max(60, box.width - pad);
+    const ah = Math.max(60, box.height - pad - 22);
+    const r = state.src.w / state.src.h;
+    let dw = aw, dh = aw / r;
+    if(dh > ah){ dh = ah; dw = ah * r; }
+    els.frame.style.width = Math.round(dw) + 'px';
+    els.frame.style.height = Math.round(dh) + 'px';
+  }
+
+  // ---------------- 控件 ----------------
+
+  let timer = null;
+  function kick(delay){
+    if(timer) clearTimeout(timer);
+    timer = setTimeout(render, delay || 70);
+  }
+
+  document.querySelectorAll('.algo').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.algo').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      state.method = btn.dataset.m;
+      updateParams();
+      render();
+    });
+  });
+
+  function updateParams(){
+    const needs = NEEDS[state.method] || [];
+    const smoothKeys = { lineWidth:1, smoothLen:1, gap:1, pruneLen:1 };
+    document.querySelectorAll('.pgroup[data-p]').forEach(g => {
+      const key = g.dataset.p;
+      let show;
+      if(key === 'normStrength') show = !!state.opts.norm;
+      else if(key === 'minArea') show = !!state.opts.removeSmall;
+      else if(smoothKeys[key]) show = !!state.opts.smoothOn;
+      else show = needs.indexOf(key) >= 0;
+      g.classList.toggle('hide', !show);
+    });
+    $('btnSvg').classList.toggle('hidden', !state.opts.smoothOn);
+  }
+
+  function bindRange(id, key, fmt, transform){
+    const el = $('p-' + id), out = $('v-' + id);
+    const apply = () => {
+      const raw = +el.value;
+      state.opts[key] = transform ? transform(raw) : raw;
+      out.textContent = fmt ? fmt(state.opts[key]) : state.opts[key];
+      kick(state.opts.smoothOn ? 260 : 70);   // 描线要跑骨架化，稍等再算
+    };
+    el.addEventListener('input', apply);
+    return {el, apply, out};
+  }
+
+  const rThr = bindRange('threshold', 'threshold', v => v);
+  const rBlk = bindRange('block', 'block', v => v);
+  const rC = bindRange('C', 'C', v => v);
+  const rK = bindRange('k', 'k', v => v.toFixed(2), v => +(v/100).toFixed(2));
+  const rKn = bindRange('kn', 'kn', v => v.toFixed(2), v => +(v/100).toFixed(2));
+  const rCon = bindRange('contrast', 'contrast', v => v);
+  const rNorm = bindRange('normStrength', 'normStrength', v => v);
+  const rArea = bindRange('minArea', 'minArea', v => v);
+  const rLW = bindRange('lineWidth', 'lineWidth', v => v.toFixed(1), v => v/10);
+  const rSL = bindRange('smoothLen', 'smoothLen', v => v);
+  const rGap = bindRange('gap', 'gap', v => v);
+  const rPrune = bindRange('pruneLen', 'pruneLen', v => v);
+
+  function bindSwitch(id, key, after){
+    const el = $('sw-' + id);
+    el.addEventListener('click', () => {
+      el.classList.toggle('on');
+      state.opts[key] = el.classList.contains('on');
+      if(after) after();
+      updateParams();
+      render();
+    });
+  }
+
+  bindSwitch('invert', 'invert');
+  bindSwitch('denoise', 'denoise');
+  bindSwitch('close', 'close');
+  bindSwitch('removeSmall', 'removeSmall');
+  bindSwitch('norm', 'norm');
+  bindSwitch('stretch', 'stretch');
+  bindSwitch('blur', 'blur');
+  bindSwitch('smoothOn', 'smoothOn');
+  bindSwitch('compare', 'compare', () => {
+    els.frame.classList.toggle('compare', state.opts.compare);
+    if(state.opts.compare) setSplit(state.split);
+    else els.cRes.style.clipPath = '';
+    layout();
+  });
+
+  function setSplit(p){
+    state.split = Math.max(2, Math.min(98, p));
+    els.cRes.style.clipPath = 'inset(0 0 0 ' + state.split + '%)';
+    els.divider.style.left = state.split + '%';
+  }
+  let dragging = false;
+  els.frame.addEventListener('pointerdown', e => {
+    if(!state.opts.compare) return;
+    dragging = true;
+    els.frame.setPointerCapture(e.pointerId);
+    moveSplit(e);
+  });
+  els.frame.addEventListener('pointermove', e => { if(dragging) moveSplit(e); });
+  els.frame.addEventListener('pointerup', () => { dragging = false; });
+  els.frame.addEventListener('pointercancel', () => { dragging = false; });
+  function moveSplit(e){
+    const r = els.frame.getBoundingClientRect();
+    setSplit(((e.clientX - r.left) / r.width) * 100);
+  }
+
+  // 预设
+  const PRESETS = {
+    shadow: {m:'sauvola', block:41, k:0.18, C:10, threshold:128, kn:-0.2, contrast:15, norm:true, normStrength:85, stretch:true, blur:false},
+    faded:  {m:'wolf',    block:31, k:0.30, C:10, threshold:128, kn:-0.2, contrast:15, norm:true, normStrength:60, stretch:true, blur:false},
+    hand:   {m:'sauvola', block:15, k:0.12, C:10, threshold:128, kn:-0.2, contrast:15, norm:false, normStrength:70, stretch:false, blur:false},
+    line:   {m:'otsu',    block:15, k:0.20, C:10, threshold:140, kn:-0.2, contrast:15, norm:false, normStrength:70, stretch:true, blur:true},
+    photo:  {m:'dither',  block:15, k:0.20, C:10, threshold:128, kn:-0.2, contrast:15, norm:false, normStrength:70, stretch:false, blur:false},
+  };
+
+  function applyPreset(p){
+    state.method = p.m;
+    document.querySelectorAll('.algo').forEach(b => b.classList.toggle('on', b.dataset.m === p.m));
+
+    rThr.el.value = p.threshold; rThr.apply();
+    rBlk.el.value = p.block; rBlk.apply();
+    rC.el.value = p.C; rC.apply();
+    rK.el.value = Math.round(p.k * 100); rK.apply();
+    rKn.el.value = Math.round(p.kn * 100); rKn.apply();
+    rCon.el.value = p.contrast; rCon.apply();
+    rNorm.el.value = p.normStrength; rNorm.apply();
+
+    [['norm', p.norm], ['stretch', p.stretch], ['blur', p.blur]].forEach(([k, v]) => {
+      state.opts[k] = v;
+      $('sw-' + k).classList.toggle('on', v);
+    });
+
+    updateParams();
+    render();
+  }
+
+  document.querySelectorAll('[data-preset]').forEach(chip => {
+    chip.addEventListener('click', () => applyPreset(PRESETS[chip.dataset.preset]));
+  });
+
+  // 重置
+  $('btnReset').addEventListener('click', () => {
+    state.method = 'otsu';
+    document.querySelectorAll('.algo').forEach(b => b.classList.toggle('on', b.dataset.m === 'otsu'));
+    rThr.el.value = 128; rThr.apply();
+    rBlk.el.value = 31; rBlk.apply();
+    rC.el.value = 10; rC.apply();
+    rK.el.value = 20; rK.apply();
+    rKn.el.value = -20; rKn.apply();
+    rCon.el.value = 15; rCon.apply();
+    rNorm.el.value = 70; rNorm.apply();
+    rArea.el.value = 20; rArea.apply();
+    rLW.el.value = 20; rLW.apply();
+    rSL.el.value = 2; rSL.apply();
+    rGap.el.value = 6; rGap.apply();
+    rPrune.el.value = 8; rPrune.apply();
+
+    ['norm','stretch','blur','denoise','close','removeSmall','smoothOn','invert','compare'].forEach(k => {
+      state.opts[k] = false;
+      $('sw-' + k).classList.remove('on');
+    });
+    els.frame.classList.remove('compare');
+    els.cRes.style.clipPath = '';
+
+    updateParams();
+    render();
+  });
+
+  // ---------------- 载入入口 ----------------
+
+  $('btnUpload').addEventListener('click', () => els.fileInput.click());
+  $('btnUpload2').addEventListener('click', () => els.fileInput.click());
+  els.fileInput.addEventListener('change', e => {
+    const f = e.target.files && e.target.files[0];
+    if(f) loadFromBlob(f);
+    e.target.value = '';
+  });
+
+  let dragDepth = 0;
+  window.addEventListener('dragenter', e => {
+    e.preventDefault(); dragDepth++;
+    els.dropOverlay.classList.add('on');
+  });
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('dragleave', e => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if(dragDepth === 0) els.dropOverlay.classList.remove('on');
+  });
+  window.addEventListener('drop', e => {
+    e.preventDefault(); dragDepth = 0;
+    els.dropOverlay.classList.remove('on');
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f && f.type.startsWith('image/')) loadFromBlob(f);
+  });
+
+  window.addEventListener('paste', e => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if(!items) return;
+    for(const it of items){
+      if(it.type.startsWith('image/')){
+        const f = it.getAsFile();
+        if(f){ loadFromBlob(f); e.preventDefault(); }
+        break;
+      }
+    }
+  });
+
+  window.addEventListener('resize', layout);
+
+  // ---------------- 导出 ----------------
+
+  function downloadBlob(blob, name){
+    const a = document.createElement('a');
+    a.download = name;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
+  function stamp(){
+    return new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  }
+
+  $('btnDownload').addEventListener('click', () => {
+    if(!state.src) return;
+    const btn = $('btnDownload');
+    const old = btn.textContent;
+    btn.textContent = '处理中…';
+    btn.disabled = true;
+
+    setTimeout(() => {
+      try{
+        const {canvas, w, h} = state.src;
+        let sw = w, sh = h;
+
+        // 描线模式要做骨架化，超大图先降到 400 万像素以内，避免卡死
+        if(state.opts.smoothOn && w*h > 4e6){
+          const s = Math.sqrt(4e6 / (w*h));
+          sw = Math.round(w*s);
+          sh = Math.round(h*s);
+        }
+
+        let gray;
+        if(sw !== w){
+          const tmp = document.createElement('canvas');
+          tmp.width = sw; tmp.height = sh;
+          const tctx = tmp.getContext('2d', {willReadFrequently:true});
+          tctx.imageSmoothingQuality = 'high';
+          tctx.drawImage(canvas, 0, 0, sw, sh);
+          gray = toGray(tctx.getImageData(0, 0, sw, sh));
+        } else {
+          const ctx0 = canvas.getContext('2d', {willReadFrequently:true});
+          gray = toGray(ctx0.getImageData(0, 0, w, h));
+        }
+
+        const pg = preprocess(gray, sw, sh, state.opts);
+        const res = binarize(pg, sw, sh, state.method, state.opts);
+        let mask = postprocess(res.mask, sw, sh, state.opts);
+        if(state.opts.smoothOn) mask = smoothToMask(mask, sw, sh, state.opts);
+
+        const out = document.createElement('canvas');
+        out.width = sw; out.height = sh;
+        paint(out.getContext('2d'), mask, sw, sh, state.opts.invert);
+
+        out.toBlob(blob => {
+          downloadBlob(blob, 'binarized-' + stamp() + '.png');
+          btn.textContent = old;
+          btn.disabled = false;
+        }, 'image/png');
+      }catch(err){
+        console.error(err);
+        alert('导出失败：' + err.message);
+        btn.textContent = old;
+        btn.disabled = false;
+      }
+    }, 30);
+  });
+
+  // 导出矢量 SVG：路径可无限缩放，方便再描线 / 雕刻 / 打印
+  $('btnSvg').addEventListener('click', () => {
+    if(!state.src) return;
+    if(!state.opts.smoothOn){ alert('请先打开「顺滑成连续曲线」'); return; }
+    const btn = $('btnSvg');
+    const old = btn.textContent;
+    btn.textContent = '生成中…';
+
+    setTimeout(() => {
+      try{
+        if(!lastPaths) render();
+        if(!lastPaths || !lastPaths.paths.length){
+          alert('没有可描线的笔画，试试调整阈值或参数');
+          btn.textContent = old;
+          return;
+        }
+        const scale = state.src.w / lastPaths.w;
+        const d = pathsToD(lastPaths.paths, scale);
+        const lw = Math.max(0.5, lastPaths.lineWidth * scale);
+        const W = state.src.w, H = state.src.h;
+        const bg = state.opts.invert ? '#000' : '#fff';
+        const fg = state.opts.invert ? '#fff' : '#000';
+
+        const svg =
+'<?xml version="1.0" encoding="UTF-8"?>\n' +
+'<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">\n' +
+'  <rect width="' + W + '" height="' + H + '" fill="' + bg + '"/>\n' +
+'  <path d="' + d + '" fill="none" stroke="' + fg + '" stroke-width="' + (Math.round(lw*100)/100) +
+'    " stroke-linecap="round" stroke-linejoin="round"/>\n' +
+'</svg>\n';
+
+        downloadBlob(new Blob([svg], {type:'image/svg+xml'}), 'lineart-' + stamp() + '.svg');
+        btn.textContent = old;
+      }catch(err){
+        console.error(err);
+        alert('生成失败：' + err.message);
+        btn.textContent = old;
+      }
+    }, 30);
+  });
+
+  // ---------------- 示例图 ----------------
+
+  $('btnDemo').addEventListener('click', () => {
+    const w = 900, h = 620;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#fbf7ee');
+    g.addColorStop(.42, '#ece4d4');
+    g.addColorStop(1, '#c9bda6');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+
+    // 斜向阴影（模拟拍摄遮挡）
+    const sg = ctx.createLinearGradient(0, 0, w*0.7, h);
+    sg.addColorStop(0, 'rgba(90,75,55,0)');
+    sg.addColorStop(.55, 'rgba(90,75,55,0.16)');
+    sg.addColorStop(1, 'rgba(90,75,55,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, 0, w, h);
+
+    for(let i=0;i<9000;i++){
+      const x = Math.random()*w, y = Math.random()*h;
+      ctx.fillStyle = 'rgba(120,105,80,' + (Math.random()*0.05).toFixed(3) + ')';
+      ctx.fillRect(x, y, 1.5, 1.5);
+    }
+
+    ctx.fillStyle = '#2a2620';
+    ctx.font = '700 46px Georgia, serif';
+    ctx.fillText('Binarization', 70, 120);
+    ctx.font = '400 26px Georgia, serif';
+    ctx.fillText('灰度 → 黑白，只留形与影。', 72, 168);
+
+    ctx.strokeStyle = '#2a2620';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(70, 195); ctx.lineTo(520, 195); ctx.stroke();
+
+    const lineH = 22;
+    for(let i=0;i<12;i++){
+      const alpha = 0.32 + Math.random()*0.5;
+      ctx.fillStyle = 'rgba(42,38,32,' + alpha.toFixed(2) + ')';
+      const lw = 320 + Math.random()*180;
+      ctx.fillRect(72, 230 + i*lineH, lw, 9);
+    }
+
+    ctx.fillStyle = 'rgba(35,31,26,0.85)';
+    ctx.beginPath(); ctx.arc(720, 170, 62, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath(); ctx.arc(745, 150, 26, 0, Math.PI*2); ctx.fill();
+
+    ctx.strokeStyle = 'rgba(42,38,32,0.45)';
+    ctx.lineWidth = 1.4;
+    for(let i=0;i<7;i++){
+      ctx.beginPath();
+      ctx.moveTo(600, 300 + i*36);
+      ctx.lineTo(830, 300 + i*36);
+      ctx.stroke();
+    }
+
+    // 散落的墨点，用于检验噪点过滤
+    for(let i=0;i<70;i++){
+      ctx.fillStyle = 'rgba(40,35,28,' + (0.3 + Math.random()*0.6).toFixed(2) + ')';
+      const r = 0.8 + Math.random()*1.6;
+      ctx.beginPath();
+      ctx.arc(80 + Math.random()*500, 480 + Math.random()*110, r, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = 'rgba(30,26,22,0.9)';
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(640, 560);
+    ctx.bezierCurveTo(690, 500, 720, 590, 760, 530);
+    ctx.bezierCurveTo(790, 490, 800, 570, 840, 545);
+    ctx.stroke();
+
+    c.toBlob(b => loadFromBlob(b), 'image/png');
+  });
+
+  updateParams();
+})();
+</script>
+
+</body>
+</html>
