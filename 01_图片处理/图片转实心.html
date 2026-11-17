@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="孙红晨">
+<meta name="application-name" content="Redchen 书法机器人 · 天工书画一代">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redchen 书法机器人 · 图片转实心 G 代码 · 填充雕刻（每行多少毫米）</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --line:#e3e6ea; --accent:#1f6feb; --accent2:#0b5bd3; --text:#1f2328; --muted:#6b7280; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  .wrap { max-width:780px; margin:0 auto; padding:28px 20px 60px; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 22px; font-size:14px; }
+  #dropzone {
+    border:2px dashed #c4cad2; border-radius:12px; background:var(--card);
+    padding:30px 20px; text-align:center; cursor:pointer; transition:.15s;
+    color:var(--muted); font-size:15px;
+  }
+  #dropzone.over { border-color:var(--accent); background:#eef4ff; color:var(--accent); }
+  #dropzone b { color:var(--text); }
+  #fileInfo { font-size:13px; color:var(--muted); margin:10px 2px 0; }
+  .previewBox { margin-top:16px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .previewBox .title { font-weight:600; font-size:14px; margin-bottom:8px; }
+  #preview { display:block; width:100%; max-height:420px; object-fit:contain; background:#fff; border:1px solid var(--line); border-radius:6px; }
+  #status { font-size:13px; color:var(--muted); margin:10px 0 0; }
+  fieldset { border:1px solid var(--line); border-radius:10px; background:var(--card); padding:14px 16px 16px; margin:16px 0 0; }
+  legend { font-weight:600; padding:0 6px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px 18px; }
+  label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:5px; }
+  input[type=number] { font-size:15px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; width:100%; }
+  input[type=number]:focus { outline:none; border-color:var(--accent); }
+  input[type=range] { width:100%; }
+  select { font-size:15px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; width:100%; background:#fff; color:var(--text); }
+  .chk { display:flex; flex-direction:row; align-items:center; gap:8px; font-size:14px; color:var(--text); margin:0 0 10px; cursor:pointer; }
+  .chk input { width:16px; height:16px; }
+  .hint { font-size:12px; color:#9aa1a9; margin:8px 2px 0; }
+  .key { background:#eef4ff; border:1px solid #cfe0ff; border-radius:8px; padding:10px 12px; margin:8px 0 0; font-size:13px; color:#1f3a6e; }
+  #runBtn {
+    display:block; width:100%; margin-top:20px; padding:14px; font-size:16px; font-weight:600;
+    color:#fff; background:var(--accent); border:none; border-radius:10px; cursor:pointer; transition:.15s;
+  }
+  #runBtn:hover:not(:disabled) { background:var(--accent2); }
+  #runBtn:disabled { background:#c4cad2; cursor:not-allowed; }
+  #result { margin-top:20px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; }
+  #stats { font-size:15px; margin:0 0 12px; }
+  #download {
+    display:inline-block; padding:11px 22px; background:#16a34a; color:#fff; font-weight:600;
+    border-radius:8px; text-decoration:none;
+  }
+  #download:hover { background:#15803d; }
+  details { margin-top:16px; }
+  summary { cursor:pointer; color:var(--muted); font-size:13px; }
+  pre { background:#0f1115; color:#e6edf3; padding:12px; border-radius:8px; overflow:auto; font-size:12px; max-height:260px; }
+  .err { color:#dc2626; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>图片转实心 G 代码</h1>
+  <p class="sub">把图片用一排排平行线填充（和奎享「实心图」一个原理），但参数是「每行多少毫米」——填你笔头的直径就行。</p>
+
+  <div id="dropzone"><b>把图片（PNG / JPG / BMP）拖到这里</b><br>或点击选择图片</div>
+  <input type="file" id="fileInput" accept="image/*" hidden>
+  <p id="fileInfo"></p>
+
+  <div class="previewBox" id="previewBox" hidden>
+    <div class="title">填充预览（黑线 = 机器要画的线）</div>
+    <canvas id="preview"></canvas>
+    <p id="status"></p>
+  </div>
+
+  <fieldset>
+    <legend>★ 关键参数：每行多少毫米</legend>
+    <div class="grid">
+      <label>每行多少毫米（= 笔头直径）<input id="lineSpacing" type="number" value="5" step="0.1" min="0.1"></label>
+    </div>
+    <div class="key">几毫米的笔就填几。<b>原来软件的「每毫米多少行」= 1 ÷ 每行多少毫米</b>。比如填 5mm，就等于每毫米 0.2 行——线之间正好隔一个笔头，一笔盖一笔、不重也不留缝。</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>图片调节</legend>
+    <div class="grid">
+      <label>黑白阈值 <span id="threshVal">128</span>
+        <input id="thresh" type="range" min="0" max="255" value="128" step="1">
+      </label>
+      <label>忽略太短的线（像素）<input id="minRun" type="number" value="2" step="1" min="0"></label>
+    </div>
+    <label class="chk"><input type="checkbox" id="invert"> 反色（图是黑底白图时勾选）</label>
+    <div class="hint">黑的地方会被填充，白的地方空着。深的地方要实、浅的地方不要，就调阈值。</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>成品尺寸 & 方向 & 机器参数</legend>
+    <div class="grid">
+      <label>成品宽度 (mm)<input id="widthMm" type="number" value="60" step="1"></label>
+      <label>填充方向
+        <select id="direction">
+          <option value="horizontal">横向（一横一横）</option>
+          <option value="vertical">纵向（一竖一竖）</option>
+        </select>
+      </label>
+      <label>落笔 Z<input id="downZ" type="number" value="5" step="0.1"></label>
+      <label>抬笔 Z<input id="upZ" type="number" value="0" step="0.1"></label>
+      <label>F 速度<input id="feed" type="number" value="10000" step="1000"></label>
+    </div>
+    <div class="hint">高度按图片比例自动算。生成后拖进「合并工具」当「画」，和字拼一起。</div>
+  </fieldset>
+
+  <button id="runBtn" disabled>生成实心 G 代码</button>
+
+  <div id="result" hidden>
+    <p id="stats"></p>
+    <a id="download" download>下载实心 G 代码</a>
+    <details>
+      <summary>预览前 30 行</summary>
+      <pre id="previewCode"></pre>
+    </details>
+  </div>
+</div>
+
+<script>
+// ============ 核心：填充分段 ============
+
+// Otsu 自动阈值
+function otsu(hist, total) {
+    var sum = 0, i;
+    for (i = 0; i < 256; i++) sum += i * hist[i];
+    var sumB = 0, wB = 0, varMax = -1, thr = 127;
+    for (var t = 0; t < 256; t++) {
+        wB += hist[t]; if (wB === 0) continue;
+        var wF = total - wB; if (wF === 0) break;
+        sumB += t * hist[t];
+        var mB = sumB / wB, mF = (sum - sumB) / wF;
+        var between = wB * wF * (mB - mF) * (mB - mF);
+        if (between > varMax) { varMax = between; thr = t; }
+    }
+    return thr;
+}
+
+// 蛇形（一笔画）填充：把二值图按行距切成一行行，但相邻行首尾相连，笔不抬，一条线连续走下来。
+// 只有遇到同行的缺口（镂空/多块）或跨过了空行时才抬笔，另起一条连续笔画。
+// 返回多条「连续笔画」，每条 = 有序点数组 [[x,y], ...]（像素坐标）。
+// bin: Uint8Array(1=要填充)，step=行距(像素)，minRun=忽略短于该值的碎线段。
+function serpentineHorizontal(bin, W, H, step, minRun) {
+    var paths = [], cur = null, prevY = -1e9;
+    for (var k = 0; ; k++) {
+        var y = Math.round(k * step);
+        if (y >= H) break;
+        var rr = [], x = 0;
+        while (x < W) {
+            while (x < W && !bin[y * W + x]) x++;
+            if (x >= W) break;
+            var x1 = x;
+            while (x < W && bin[y * W + x]) x++;
+            if (x - x1 >= minRun) rr.push([x1, x - 1]);
+        }
+        if (rr.length === 0) continue;
+        var order = (k % 2 === 0) ? rr : rr.slice().reverse();   // 偶数行左→右，奇数行右→左
+        for (var j = 0; j < order.length; j++) {
+            var r = order[j];
+            var sx = (k % 2 === 0) ? r[0] : r[1];
+            var ex = (k % 2 === 0) ? r[1] : r[0];
+            // 只有当这是新一行的第一段、且上一行紧挨着它（中间没空行）时才连笔
+            var connect = (cur !== null) && (j === 0) && (y - prevY <= step + 0.5);
+            if (!connect) {
+                if (cur) paths.push(cur);
+                cur = [[sx, y], [ex, y]];
+            } else {
+                cur.push([sx, y], [ex, y]);
+            }
+            prevY = y;
+        }
+    }
+    if (cur) paths.push(cur);
+    return paths;
+}
+// 横向直接蛇形；纵向先转置、横着蛇形、再转回来。
+function serpentinePaths(bin, W, H, step, horizontal, minRun) {
+    if (horizontal) return serpentineHorizontal(bin, W, H, step, minRun);
+    var bt = new Uint8Array(W * H);
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) bt[x * H + y] = bin[y * W + x];
+    var p = serpentineHorizontal(bt, H, W, step, minRun);
+    return p.map(function (path) { return path.map(function (pt) { return [pt[1], pt[0]]; }); });
+}
+
+// ============ 界面 ============
+var dropzone = document.getElementById("dropzone");
+var fileInput = document.getElementById("fileInput");
+var fileInfo = document.getElementById("fileInfo");
+var previewBox = document.getElementById("previewBox");
+var previewCanvas = document.getElementById("preview");
+var statusEl = document.getElementById("status");
+var threshRange = document.getElementById("thresh");
+var threshVal = document.getElementById("threshVal");
+var invertChk = document.getElementById("invert");
+var minRunInput = document.getElementById("minRun");
+var lineSpacingInput = document.getElementById("lineSpacing");
+var widthInput = document.getElementById("widthMm");
+var directionSel = document.getElementById("direction");
+var runBtn = document.getElementById("runBtn");
+var resultBox = document.getElementById("result");
+var statsEl = document.getElementById("stats");
+var downloadLink = document.getElementById("download");
+var previewCode = document.getElementById("previewCode");
+
+var workCanvas = document.createElement("canvas");
+var gray = null, W = 0, H = 0, currentPaths = null, imageName = "画";
+
+function readNum(id) { return Number(document.getElementById(id).value); }
+
+function process() {
+    if (!gray) return;
+    var thr = Number(threshRange.value);
+    var invert = invertChk.checked;
+    var bin = new Uint8Array(W * H);
+    for (var i = 0; i < W * H; i++) {
+        var fg = invert ? (gray[i] >= thr) : (gray[i] < thr);
+        bin[i] = fg ? 1 : 0;
+    }
+    var widthMm = readNum("widthMm");
+    var scale = widthMm / W;                 // mm / 像素
+    var spacingMm = readNum("lineSpacing");
+    var stepPx = spacingMm / scale;          // 行距换算成像素
+    if (stepPx < 1) stepPx = 1;
+    var horizontal = directionSel.value === "horizontal";
+    var minRun = Number(minRunInput.value) || 0;
+    var paths = serpentinePaths(bin, W, H, stepPx, horizontal, minRun);
+    currentPaths = paths;
+    renderPreview(paths);
+    statusEl.textContent = "每行 " + spacingMm + "mm（= 每毫米 " + (1 / spacingMm).toFixed(3) + " 行），共 " + paths.length + " 条连续笔画（一笔画）";
+    runBtn.disabled = !paths.length;
+}
+
+function renderPreview(paths) {
+    var dw = 640, dh = Math.max(90, Math.round(dw * H / W));
+    previewCanvas.width = dw; previewCanvas.height = dh;
+    var ctx = previewCanvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, dw, dh);
+    ctx.strokeStyle = "#111"; ctx.lineWidth = 1.2; ctx.lineCap = "round";
+    var sx = dw / W, sy = dh / H;
+    ctx.beginPath();
+    for (var i = 0; i < paths.length; i++) {
+        var path = paths[i];
+        if (path.length < 2) continue;
+        ctx.moveTo(path[0][0] * sx, path[0][1] * sy);
+        for (var j = 1; j < path.length; j++) {
+            ctx.lineTo(path[j][0] * sx, path[j][1] * sy);
+        }
+    }
+    ctx.stroke();
+}
+
+function loadImage(file) {
+    imageName = file.name.replace(/\.[^.]+$/, "");
+    fileInfo.textContent = "已选择：" + file.name + "，正在处理…";
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var s = Math.min(1, 1600 / Math.max(w, h));
+        W = Math.max(1, Math.round(w * s)); H = Math.max(1, Math.round(h * s));
+        workCanvas.width = W; workCanvas.height = H;
+        var ctx = workCanvas.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(img, 0, 0, W, H);
+        var data = ctx.getImageData(0, 0, W, H).data;
+        gray = new Uint8Array(W * H);
+        var sum = 0, i;
+        for (i = 0; i < W * H; i++) {
+            var r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
+            var l = Math.round((r * 299 + g * 587 + b * 114) / 1000);
+            gray[i] = l; sum += l;
+        }
+        var mean = sum / (W * H);
+        invertChk.checked = mean < 128;
+        var hist = new Array(256); for (i = 0; i < 256; i++) hist[i] = 0;
+        for (i = 0; i < gray.length; i++) hist[gray[i]]++;
+        var o = otsu(hist, W * H);
+        threshRange.value = o; threshVal.textContent = o;
+        URL.revokeObjectURL(url);
+        previewBox.hidden = false;
+        process();
+        fileInfo.textContent = "已选择：" + file.name;
+    };
+    img.onerror = function () { fileInfo.textContent = "图片读取失败，换个文件试试。"; };
+    img.src = url;
+}
+
+dropzone.addEventListener("click", function () { fileInput.click(); });
+fileInput.addEventListener("change", function () { if (fileInput.files.length) loadImage(fileInput.files[0]); });
+["dragover", "dragenter"].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.add("over"); });
+});
+["dragleave", "drop"].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.remove("over"); });
+});
+dropzone.addEventListener("drop", function (e) {
+    if (e.dataTransfer.files.length) loadImage(e.dataTransfer.files[0]);
+});
+
+var debounceTimer = null;
+function schedule() { if (debounceTimer) clearTimeout(debounceTimer); debounceTimer = setTimeout(process, 250); }
+threshRange.addEventListener("input", function () { threshVal.textContent = threshRange.value; schedule(); });
+invertChk.addEventListener("change", process);
+minRunInput.addEventListener("change", process);
+lineSpacingInput.addEventListener("change", process);
+widthInput.addEventListener("change", process);
+directionSel.addEventListener("change", process);
+
+runBtn.addEventListener("click", function () {
+    if (!currentPaths || !currentPaths.length) return;
+    var widthMm = readNum("widthMm");
+    var scale = widthMm / W;
+    var heightMm = (H * scale).toFixed(1);
+    var downZ = readNum("downZ"), upZ = readNum("upZ"), feed = readNum("feed");
+    function f(n) { return n.toFixed(3); }
+    var out = [];
+    out.push(""); out.push("G21"); out.push("G90"); out.push("F" + feed);
+    out.push("G1G90 Z" + upZ.toFixed(1) + "F" + feed);
+    out.push("G1G90 Z" + upZ.toFixed(1) + "F" + feed);
+    for (var i = 0; i < currentPaths.length; i++) {
+        var path = currentPaths[i];
+        if (path.length < 2) continue;
+        out.push("G0 X" + f(path[0][0] * scale) + "Y" + f(path[0][1] * scale) + "F" + feed);
+        out.push("G1G90 Z" + downZ.toFixed(1) + "F" + feed);
+        for (var j = 1; j < path.length; j++) {
+            out.push("G1 X" + f(path[j][0] * scale) + "Y" + f(path[j][1] * scale) + "F" + feed);
+        }
+        out.push("G1G90 Z" + upZ.toFixed(1) + "F" + feed);
+    }
+    out.push("G90G0 X0Y0");
+    var text = out.join("\r\n");
+    var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    downloadLink.href = url;
+    downloadLink.download = imageName + "_实心.gcode";
+    downloadLink.textContent = "下载 " + imageName + "_实心.gcode";
+    statsEl.innerHTML = "✅ 共 <b>" + currentPaths.length + "</b> 条连续笔画（一笔画），每行 <b>" + readNum("lineSpacing") + "mm</b>，成品约 " + widthMm + "mm 宽 × " + heightMm + "mm 高。下载后拖进「合并工具」当「画」用。";
+    previewCode.textContent = text.split("\r\n").slice(0, 30).join("\n");
+    resultBox.hidden = false;
+});
+</script>
+
+
+<!-- Redchen 书法机器人 · 天工书画一代 · By 孙红晨 -->
+<footer id="rc-brand" style="margin:28px 0 20px;padding:14px 16px 0;border-top:1px solid #e6e1d6;
+  text-align:center;font:12px/1.7 'Microsoft YaHei','PingFang SC',sans-serif;color:#8a8378;letter-spacing:.3px">
+  <span style="color:#232220;font-weight:600">Redchen 书法机器人</span>
+  <span style="opacity:.4;margin:0 7px">·</span>
+  <span style="font-family:KaiTi,STKaiti,serif;letter-spacing:1px">天工书画一代</span>
+  <span style="opacity:.4;margin:0 7px">·</span>
+  <span>By 孙红晨</span>
+</footer>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redchen 书法机器人 · 天工书画一代 ｜ 工具总览</title>
+<style>
+  :root{
+    --bg:#f6f4ef; --card:#fff; --line:#e6e1d6; --accent:#9e2b25; --accent2:#7d1f1a;
+    --seal:#a3302a; --ink:#232220;
+    --text:#232220; --muted:#6f6a61; --ok:#15803d; --warn:#b45309; --warnbg:#fdf6e8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+       background:var(--bg);color:var(--text);line-height:1.7;
+       background-image:radial-gradient(#00000005 1px, transparent 1px);background-size:4px 4px}
+  .wrap{max-width:960px;margin:0 auto;padding:26px 20px 70px}
+
+  /* ===== 品牌抬头 ===== */
+  .brand{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+         padding:15px 20px;margin:0 0 24px;border:1px solid var(--line);border-radius:14px;
+         background:linear-gradient(135deg,#fffdf8 0%,#fffefb 55%,#fff 100%);
+         box-shadow:0 1px 2px rgba(40,32,20,.05), 0 8px 24px -18px rgba(40,32,20,.45);
+         position:relative;overflow:hidden}
+  .brand::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+         background:linear-gradient(180deg,var(--seal),#c25b46)}
+  .lockup{display:flex;align-items:center;gap:14px;min-width:0}
+  .seal{width:50px;height:50px;flex:0 0 50px;border-radius:9px;background:var(--seal);color:#fff;
+        display:flex;align-items:center;justify-content:center;
+        font-family:"KaiTi","STKaiti","Songti SC",serif;font-size:30px;font-weight:700;
+        line-height:1;padding-bottom:2px;
+        box-shadow:inset 0 0 0 2px rgba(255,255,255,.32), 0 2px 9px rgba(158,43,37,.32);
+        transform:rotate(-2.5deg)}
+  .names{min-width:0}
+  .names .nm{font-size:19px;font-weight:700;line-height:1.3;letter-spacing:.3px;color:var(--ink);white-space:nowrap}
+  .names .nm .lat{font-family:Georgia,"Times New Roman",serif;letter-spacing:.7px;margin-right:8px}
+  .names .nm .cn{font-family:"KaiTi","STKaiti","Songti SC",serif;font-size:23px;letter-spacing:1.2px}
+  .names .mdl{font-size:12px;color:var(--muted);letter-spacing:2.2px;margin-top:3px;
+              font-family:"KaiTi","STKaiti",serif}
+  .names .mdl .en{font-family:Georgia,serif;letter-spacing:1.5px;font-size:10.5px;opacity:.75;margin-left:7px}
+  .by{font-size:12.5px;color:var(--muted);text-align:right;line-height:1.5;white-space:nowrap}
+  .by b{font-family:"KaiTi","STKaiti","Songti SC",serif;font-size:16px;font-weight:700;
+        color:var(--ink);letter-spacing:2px;margin-left:5px}
+  @media (max-width:640px){
+    .names .nm{white-space:normal}
+    .by{text-align:left;white-space:normal}
+  }
+
+  header{margin-bottom:22px}
+  h1{font-size:23px;margin:0 0 6px;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0;max-width:760px}
+  .badge{display:inline-block;font-size:11.5px;padding:1px 9px;border-radius:999px;
+         background:#fdf1ee;color:var(--accent);border:1px solid #eccfc8;margin-left:8px;vertical-align:3px;
+         letter-spacing:.5px}
+
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:26px 0 30px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;position:relative}
+  .step .n{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;
+           font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .step h4{margin:8px 0 2px;font-size:14px}
+  .step p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.55}
+  .arrow{position:absolute;right:-11px;top:50%;transform:translateY(-50%);color:#c4cad2;font-size:16px;z-index:2}
+
+  h2{font-size:17px;margin:34px 0 12px;padding-left:10px;border-left:3px solid var(--accent)}
+
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+        transition:.15s;text-decoration:none;color:inherit;display:block}
+  .card:hover{border-color:var(--accent);box-shadow:0 8px 22px -12px rgba(158,43,37,.40);transform:translateY(-1px)}
+  .card .top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .card h3{margin:0;font-size:15px}
+  .tag{font-size:11px;padding:1px 7px;border-radius:6px;background:#f5f2eb;color:var(--muted);border:1px solid var(--line)}
+  .tag.a{background:#fdf1ee;color:var(--accent);border-color:#eccfc8}
+  .card p{margin:0;font-size:13px;color:var(--muted)}
+  .card .key{margin-top:9px;font-size:12.5px;color:#3a3733;background:#faf8f3;border:1px dashed var(--line);
+             border-radius:8px;padding:7px 10px}
+  .card .key b{color:var(--accent2)}
+
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+        border-radius:12px;overflow:hidden;font-size:13.5px}
+  th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line)}
+  th{background:#faf8f3;font-weight:600;font-size:13px;color:#374151;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td b{color:var(--accent2)}
+
+  .note{background:var(--warnbg);border:1px solid #ecdcbb;border-radius:12px;padding:12px 16px;font-size:13.5px;color:#7c4a03}
+  .note b{color:var(--warn)}
+
+  .hero{display:flex;align-items:center;justify-content:space-between;gap:18px;text-decoration:none;
+        color:inherit;background:linear-gradient(135deg,#fdf3f0 0%,#fffaf7 55%,#fff 100%);
+        border:1px solid #ecd2cb;border-radius:14px;padding:20px 22px;margin:4px 0 8px;
+        transition:.16s}
+  .hero:hover{border-color:var(--accent);box-shadow:0 8px 26px -12px rgba(158,43,37,.45);transform:translateY(-1px)}
+  .hero h3{margin:0 0 6px;font-size:17px;color:var(--accent2)}
+  .hero p{margin:0;font-size:13.5px;color:#4b5563;max-width:640px}
+  .hero .go{flex:0 0 auto;background:var(--accent);color:#fff;padding:10px 18px;border-radius:10px;
+            font-size:14px;font-weight:700;white-space:nowrap;
+            box-shadow:0 6px 16px -8px rgba(158,43,37,.9)}
+  .seclabel{font-size:12.5px;color:var(--muted);margin:26px 0 0;padding-top:14px;border-top:1px dashed var(--line)}
+  @media (max-width:760px){
+    .hero{flex-direction:column;align-items:flex-start}
+    .hero .go{width:100%;text-align:center}
+  }
+
+  footer{margin-top:38px;font-size:12.5px;color:var(--muted);text-align:center;
+         border-top:1px solid var(--line);padding-top:18px}
+  footer .fbrand{font-family:"KaiTi","STKaiti","Songti SC",serif;font-size:14px;color:var(--ink);
+                 letter-spacing:1.5px;margin-bottom:3px}
+  footer .fsub{font-size:12px;letter-spacing:.4px}
+
+  @media (max-width:760px){
+    .flow{grid-template-columns:1fr 1fr}
+    .arrow{display:none}
+    .cards{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <div class="lockup">
+      <div class="seal">书</div>
+      <div class="names">
+        <div class="nm"><span class="lat">Redchen</span><span class="cn">书法机器人</span></div>
+        <div class="mdl">天工书画一代<span class="en">TIANGONG SHUHUI · GEN 1</span></div>
+      </div>
+    </div>
+    <div class="by">By<b>孙红晨</b></div>
+  </div>
+
+  <header>
+    <h1>工具总览 <span class="badge">本地离线运行</span></h1>
+    <p class="sub">图片 → 二值化 → 转笔画 G 代码 → 2×4 合并 / 蘸墨 → 串口直写；文字类先「批量建库」——粘一段文字，按页让奎享排成 G 代码导回来，之后自己排版。所有工具都在本机浏览器里跑，文件不会上传。</p>
+  </header>
+
+  <div class="flow">
+    <div class="step"><div class="n">1</div><h4>图片处理</h4><p>拍照/扫描稿先做二值化，压掉阴影、纸纹，拿到干净黑白图</p><span class="arrow">→</span></div>
+    <div class="step"><div class="n">2</div><h4>转 G 代码</h4><p>线稿走「单线」，色块走「实心」，各自生成 .gcode</p><span class="arrow">→</span></div>
+    <div class="step"><div class="n">3</div><h4>排版 / 蘸墨</h4><p>拼成 2 行 4 列一版，或给单个文件按距离插蘸墨</p><span class="arrow">→</span></div>
+    <div class="step"><div class="n">4</div><h4>上机雕刻</h4><p>倒入奎享雕刻，对好墨盘坐标，开雕</p></div>
+  </div>
+
+  <a class="hero" href="工作台.html">
+    <div class="hero-main">
+      <h3>打开工作台 · 两条路线，一个页面 <span class="tag a">推荐</span></h3>
+      <p><b>图片路线</b>：图片、二值化、中线/轮廓/实心抽取、2×4 拼版、蘸墨导出，参数共享，随时能回上一步改，最后一次性出 .gcode。<br>
+         <b>文字路线</b>：先用「批量建库」把要写的字拆页、拿去奎享各排一版，导回来<b>按文件名自动切分和命名</b>；之后输入文字就能按笔记版式排整页——字高、字距、行距、横竖排、手写抖动随便调，全程离线。<br>
+         两条路线最后都汇到第 ⑤ 步直连机器书写：连串口、点动对刀、抬笔落笔、暂停终止、看实时进度，不用来回切窗口。</p>
+    </div>
+    <span class="go">进入工作台 →</span>
+  </a>
+
+  <p class="seclabel">工作台里的两条路线</p>
+  <div class="flow" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+    <div class="step"><div class="n">图片</div><h4>① 图片 → ⑤ 书写</h4><p>拍照稿 → 二值化 → 转笔画 → 2×4 拼版 → 蘸墨 → 导出 / 直写</p></div>
+    <div class="step"><div class="n">文字</div><h4>⑥ 字库排版 → ⑤ 书写</h4><p>批量建库 → 奎享按页排 → 导回自动切分命名 → 排整页 → 导出 / 直写</p></div>
+  </div>
+
+  <p class="seclabel">原版单工具 —— 算法与工作台完全一致，只想用某一步时可以单独打开</p>
+
+  <h2>01 · 图片处理</h2>
+  <div class="cards">
+    <a class="card" href="01_图片处理/二值化/index.html">
+      <div class="top"><h3>二值化工作台</h3><span class="tag a">先做这步</span></div>
+      <p>9 种算法（Otsu / Sauvola / Niblack / Wolf…），带光照归一化、对比度拉伸、中值去噪、闭运算填孔、骨架描线，可导出 PNG 或 SVG。</p>
+      <div class="key">拍歪、有阴影的稿子用 <b>光照归一化 + Sauvola</b>；干净扫描件用 <b>Otsu</b> 就够。</div>
+    </a>
+    <a class="card" href="01_图片处理/二值化/binary.py">
+      <div class="top"><h3>binary.py</h3><span class="tag">命令行</span></div>
+      <p>同套算法的命令行版，零依赖（只用 Python 标准库），支持批量处理和多格式。</p>
+      <div class="key">用法：<b>python binary.py in.png -m sauvola -b 31 -k 0.2</b></div>
+    </a>
+  </div>
+
+  <h2>02 · 转 G 代码</h2>
+  <div class="cards">
+    <a class="card" href="01_图片处理/图片转单线.html">
+      <div class="top"><h3>图片转单线</h3><span class="tag a">按笔画描线</span></div>
+      <p>把线条抽成笔画，机器一笔一笔描过去。两种方式：<b>中线</b>（线稿用，交叉不断笔、不来回多画）、<b>轮廓</b>（实心图描每个色块外沿）。</p>
+      <div class="key">线太碎 → 调低阈值或加大「忽略太小的色块」；糊成一片 → 调高阈值。</div>
+    </a>
+    <a class="card" href="01_图片处理/图片转实心.html">
+      <div class="top"><h3>图片转实心</h3><span class="tag a">填充雕刻</span></div>
+      <p>一排排平行线填满黑色区域，和奎享「实心图」同原理。关键参数是<b>「每行多少毫米」= 笔头直径</b>，一笔盖一笔、不重不留缝。</p>
+      <div class="key">奎享的「每毫米多少行」= <b>1 ÷ 每行毫米</b>。5mm 笔 → 0.2 行/毫米。可选横填/竖填。</div>
+    </a>
+  </div>
+
+  <h2>03 · 排版与蘸墨</h2>
+  <div class="cards">
+    <a class="card" href="02_G代码处理/合并工具.html">
+      <div class="top"><h3>合并工具</h3><span class="tag a">2 行 × 4 列</span></div>
+      <p>最多 8 份 G 代码拼成一整版，每格标明是<b>字</b>还是<b>画</b>，分别用重/轻两种下压力度，并可整体缩放、调列/行间距。</p>
+      <div class="key">墨盘固定在原点 (0,0)，整版会自动右移避开墨盘。最后一步自动插蘸墨 + 刮墨。</div>
+    </a>
+    <a class="card" href="02_G代码处理/蘸墨工具.html">
+      <div class="top"><h3>蘸墨工具</h3><span class="tag">单个文件</span></div>
+      <p>给已经导出的 .gcode 按「每画满多少毫米」插一次蘸墨：去墨盘 → 吸墨 → 移开刮墨 → 抬笔回到断点继续画。</p>
+      <div class="key">墨盘坐标要填<b>墨盘实际位置</b>，不是画纸上的位置。停留设 0 就不插 G4。</div>
+    </a>
+    <a class="card" href="02_G代码处理/蘸墨处理.bat">
+      <div class="top"><h3>蘸墨处理.bat</h3><span class="tag">拖拽即用</span></div>
+      <p>命令行版蘸墨：把 .gcode 直接拖到这个图标上，自动生成同名 <b>_蘸墨.gcode</b>。参数在 add_ink.sh 顶部改。</p>
+      <div class="key">调用 E:\Git\usr\bin\bash.exe，换电脑要改这一行路径。</div>
+    </a>
+    <a class="card" href="02_G代码处理/add_ink.sh">
+      <div class="top"><h3>add_ink.sh</h3><span class="tag">脚本</span></div>
+      <p>蘸墨脚本本体，顶部参数区集中配置：墨盘 XY、下压 Z、停留秒数、每多少毫米蘸一次、是否刮墨及方向/距离。</p>
+      <div class="key">直接跑：<b>./add_ink.sh 飞入1.gcode</b></div>
+    </a>
+  </div>
+
+  <h2>机器参数速查（步进电机模式）</h2>
+  <table>
+    <tr><th>项目</th><th>默认值</th><th>说明</th></tr>
+    <tr><td>落笔 Z</td><td><b>5</b></td><td>Z 越大压得越深。字重可调到 6~7，作画轻可到 3 或 2</td></tr>
+    <tr><td>抬笔 Z</td><td><b>0</b></td><td>导出文件里的抬笔高度，一般不动</td></tr>
+    <tr><td>F 速度</td><td><b>10000</b></td><td>导出文件里 Z 后面的 F 不是 10000 时，改成那个值</td></tr>
+    <tr><td>墨盘坐标</td><td>按实际量</td><td>量墨盘中心在机器坐标里的 XY，别填纸上位置</td></tr>
+    <tr><td>蘸墨间隔</td><td><b>400 mm</b></td><td>累计笔画长度触发，想蘸勤点就调小</td></tr>
+  </table>
+
+  <h2>导出文件格式（脚本按这个格式插入）</h2>
+  <table>
+    <tr><th>动作</th><th>G 代码</th></tr>
+    <tr><td>抬笔</td><td><b>G1G90 Z0.0F10000</b></td></tr>
+    <tr><td>落笔</td><td><b>G1G90 Z5.0F10000</b></td></tr>
+    <tr><td>空移</td><td><b>G0 X18.256Y6.085F10000</b></td></tr>
+    <tr><td>画线</td><td><b>G1 X17.198Y6.350F10000</b></td></tr>
+    <tr><td>回零</td><td><b>G90G0 X0Y0</b></td></tr>
+  </table>
+
+  <div class="note" style="margin-top:16px">
+    <b>注意：</b>这些页面都是纯前端工具，必须用浏览器直接打开（双击即可）；换成别的机器或软件版本时，先拿一小段 G 代码试雕，确认蘸墨点和 Z 值对了再整版跑。工作台与下面几个原版单工具的算法完全一致，同一张图导出的 G 代码逐字节相同。<b>第 ⑤ 步连串口书写需要 Edge / Chrome</b>（Chromium 内核都行），且使用前要先关掉奎享雕刻——串口是独占的。
+  </div>
+
+  <footer>
+    <div class="fbrand">Redchen 书法机器人 · 天工书画一代</div>
+    <div class="fsub">By 孙红晨 ｜ 本地工具集 ｜ 详细说明见同目录 <b>使用说明.md</b></div>
+  </footer>
+</div>
+</body>
+</html>

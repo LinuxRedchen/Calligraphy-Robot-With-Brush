@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="孙红晨">
+<meta name="application-name" content="Redchen 书法机器人 · 天工书画一代">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redchen 书法机器人 · 图片转笔画 G 代码 · 中线 / 轮廓</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --line:#e3e6ea; --accent:#1f6feb; --accent2:#0b5bd3; --text:#1f2328; --muted:#6b7280; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  .wrap { max-width:780px; margin:0 auto; padding:28px 20px 60px; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 22px; font-size:14px; }
+  #dropzone {
+    border:2px dashed #c4cad2; border-radius:12px; background:var(--card);
+    padding:30px 20px; text-align:center; cursor:pointer; transition:.15s;
+    color:var(--muted); font-size:15px;
+  }
+  #dropzone.over { border-color:var(--accent); background:#eef4ff; color:var(--accent); }
+  #dropzone b { color:var(--text); }
+  #fileInfo { font-size:13px; color:var(--muted); margin:10px 2px 0; }
+  .previewBox { margin-top:16px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  .previewBox .title { font-weight:600; font-size:14px; margin-bottom:8px; }
+  #preview { display:block; width:100%; max-height:420px; object-fit:contain; background:#fff; border:1px solid var(--line); border-radius:6px; }
+  #status { font-size:13px; color:var(--muted); margin:10px 0 0; }
+  fieldset { border:1px solid var(--line); border-radius:10px; background:var(--card); padding:14px 16px 16px; margin:16px 0 0; }
+  legend { font-weight:600; padding:0 6px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px 18px; }
+  label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:5px; }
+  input[type=number] { font-size:15px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; width:100%; }
+  input[type=number]:focus { outline:none; border-color:var(--accent); }
+  input[type=range] { width:100%; }
+  select { font-size:15px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; width:100%; background:#fff; color:var(--text); }
+  .chk { display:flex; flex-direction:row; align-items:center; gap:8px; font-size:14px; color:var(--text); margin:0 0 10px; cursor:pointer; }
+  .chk input { width:16px; height:16px; }
+  .hint { font-size:12px; color:#9aa1a9; margin:8px 2px 0; }
+  #runBtn {
+    display:block; width:100%; margin-top:20px; padding:14px; font-size:16px; font-weight:600;
+    color:#fff; background:var(--accent); border:none; border-radius:10px; cursor:pointer; transition:.15s;
+  }
+  #runBtn:hover:not(:disabled) { background:var(--accent2); }
+  #runBtn:disabled { background:#c4cad2; cursor:not-allowed; }
+  #result { margin-top:20px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; }
+  #stats { font-size:15px; margin:0 0 12px; }
+  #download {
+    display:inline-block; padding:11px 22px; background:#16a34a; color:#fff; font-weight:600;
+    border-radius:8px; text-decoration:none;
+  }
+  #download:hover { background:#15803d; }
+  details { margin-top:16px; }
+  summary { cursor:pointer; color:var(--muted); font-size:13px; }
+  pre { background:#0f1115; color:#e6edf3; padding:12px; border-radius:8px; overflow:auto; font-size:12px; max-height:260px; }
+  .err { color:#dc2626; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>图片转笔画 G 代码（按笔画描线，像写字一样）</h1>
+  <p class="sub">线稿选「中线」（交叉不断笔、不来回多画），实心图选「轮廓」（描每个色块的外边）。</p>
+
+  <div id="dropzone"><b>把图片（PNG / JPG / BMP）拖到这里</b><br>或点击选择图片</div>
+  <input type="file" id="fileInput" accept="image/*" hidden>
+  <p id="fileInfo"></p>
+
+  <div class="previewBox" id="previewBox" hidden>
+    <div class="title">笔画预览（机器会一条条按这些笔画描过去）</div>
+    <canvas id="preview"></canvas>
+    <p id="status"></p>
+  </div>
+
+  <fieldset>
+    <legend>抽线调节</legend>
+    <div class="grid">
+      <label>描线方式
+        <select id="mode">
+          <option value="center" selected>中线（线稿，交叉不断笔）</option>
+          <option value="outline">轮廓（实心图描边）</option>
+        </select>
+      </label>
+      <label>黑白阈值 <span id="threshVal">128</span>
+        <input id="thresh" type="range" min="0" max="255" value="128" step="1">
+      </label>
+      <label>忽略太小的色块（像素²）<input id="minLen" type="number" value="20" step="1" min="0"></label>
+    </div>
+    <label class="chk"><input type="checkbox" id="invert"> 反色（图是黑底白线时勾选）</label>
+    <label class="chk"><input type="checkbox" id="smooth" checked> 平滑线条（去掉锯齿）</label>
+    <div class="hint">阈值会自动算一个初值。线太碎就调低阈值或加大「忽略太小」，糊成一片就调高阈值。「中线」适合线稿：每条线抽成中间一条、交叉处拆成几笔不断笔；「轮廓」适合实心色块：沿每个色块外边走一圈。</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>成品尺寸 & 机器参数</legend>
+    <div class="grid">
+      <label>成品宽度 (mm)<input id="widthMm" type="number" value="60" step="1"></label>
+      <label>落笔 Z<input id="downZ" type="number" value="5" step="0.1"></label>
+      <label>抬笔 Z<input id="upZ" type="number" value="0" step="0.1"></label>
+      <label>F 速度<input id="feed" type="number" value="10000" step="1000"></label>
+    </div>
+    <div class="hint">高度按图片比例自动算。生成后拿去「合并工具」拼成 2×4 一版。</div>
+  </fieldset>
+
+  <button id="runBtn" disabled>生成单线 G 代码</button>
+
+  <div id="result" hidden>
+    <p id="stats"></p>
+    <a id="download" download>下载单线 G 代码</a>
+    <details>
+      <summary>预览前 30 行</summary>
+      <pre id="previewCode"></pre>
+    </details>
+  </div>
+</div>
+
+<script>
+// ============ 通用 ============
+var CDX = [1, 1, 0, -1, -1, -1, 0, 1];   // 顺时针（屏幕坐标 y 向下）
+var CDY = [0, 1, 1, 1, 0, -1, -1, -1];
+
+function otsu(hist, total) {
+    var sum = 0, i;
+    for (i = 0; i < 256; i++) sum += i * hist[i];
+    var sumB = 0, wB = 0, varMax = -1, thr = 127;
+    for (var t = 0; t < 256; t++) {
+        wB += hist[t]; if (wB === 0) continue;
+        var wF = total - wB; if (wF === 0) break;
+        sumB += t * hist[t];
+        var mB = sumB / wB, mF = (sum - sumB) / wF;
+        var between = wB * wF * (mB - mF) * (mB - mF);
+        if (between > varMax) { varMax = between; thr = t; }
+    }
+    return thr;
+}
+
+// Douglas-Peucker 抽稀（开折线）
+function simplifyDP(pts, eps) {
+    if (pts.length < 3) return pts;
+    var keep = new Uint8Array(pts.length);
+    keep[0] = 1; keep[pts.length - 1] = 1;
+    var stack = [[0, pts.length - 1]];
+    while (stack.length) {
+        var r = stack.pop(), i0 = r[0], i1 = r[1];
+        if (i1 <= i0 + 1) continue;
+        var maxD = 0, maxI = -1, ax = pts[i0][0], ay = pts[i0][1], bx = pts[i1][0], by = pts[i1][1];
+        var dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+        for (var i = i0 + 1; i < i1; i++) {
+            var d, t;
+            if (len2 === 0) { d = Math.abs(pts[i][0] - ax) + Math.abs(pts[i][1] - ay); }
+            else {
+                t = ((pts[i][0] - ax) * dx + (pts[i][1] - ay) * dy) / len2;
+                if (t < 0) t = 0; if (t > 1) t = 1;
+                var cx = ax + t * dx, cy = ay + t * dy;
+                d = Math.sqrt((pts[i][0] - cx) * (pts[i][0] - cx) + (pts[i][1] - cy) * (pts[i][1] - cy));
+            }
+            if (d > maxD) { maxD = d; maxI = i; }
+        }
+        if (maxD > eps) { keep[maxI] = 1; stack.push([i0, maxI], [maxI, i1]); }
+    }
+    var out = [];
+    for (var i = 0; i < pts.length; i++) if (keep[i]) out.push(pts[i]);
+    return out;
+}
+
+// 闭合环抽稀：找最远两点拆成两段，各做 DP，再拼回
+function simplifyLoop(pts, eps) {
+    if (pts.length < 6) return pts;
+    var n = pts.length, a = 0, b = 1, maxD = -1;
+    for (var i = 0; i < n; i++) for (var j = i + 1; j < n; j++) {
+        var dx = pts[i][0] - pts[j][0], dy = pts[i][1] - pts[j][1], d = dx * dx + dy * dy;
+        if (d > maxD) { maxD = d; a = i; b = j; }
+    }
+    var seg1 = [], seg2 = [], i;
+    for (i = 0; i < n; i++) { var idx = (a + i) % n; seg1.push(pts[idx]); if (idx === b) break; }
+    for (i = 0; i < n; i++) { var idx2 = (b + i) % n; seg2.push(pts[idx2]); if (idx2 === a) break; }
+    var s1 = simplifyDP(seg1, eps), s2 = simplifyDP(seg2, eps);
+    return s1.slice(0, -1).concat(s2.slice(0, -1));
+}
+
+// 开折线 Chaikin 平滑
+function smoothOpen(pts, passes) {
+    for (var k = 0; k < passes; k++) {
+        if (pts.length < 2) break;
+        var out = [[pts[0][0], pts[0][1]]];
+        for (var i = 0; i < pts.length - 1; i++) {
+            var a = pts[i], b = pts[i + 1];
+            out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25]);
+            out.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
+        }
+        out.push([pts[pts.length - 1][0], pts[pts.length - 1][1]]);
+        pts = out;
+    }
+    return pts;
+}
+
+// 闭合环 Chaikin 平滑（首尾相连）
+function smoothLoop(pts, passes) {
+    for (var k = 0; k < passes; k++) {
+        if (pts.length < 3) break;
+        var out = [], n = pts.length;
+        for (var i = 0; i < n; i++) {
+            var a = pts[i], b = pts[(i + 1) % n];
+            out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25]);
+            out.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
+        }
+        pts = out;
+    }
+    return pts;
+}
+
+// 按笔画类型抽稀 + 平滑
+function simplifyStroke(st, eps, doSmooth) {
+    var pts = st.closed ? simplifyLoop(st.pts, eps) : simplifyDP(st.pts, eps);
+    if (doSmooth) pts = st.closed ? smoothLoop(pts, 2) : smoothOpen(pts, 2);
+    return { pts: pts, closed: st.closed };
+}
+
+function strokeTopLeft(st) {
+    var my = 1e9, mx = 1e9;
+    for (var i = 0; i < st.pts.length; i++) {
+        if (st.pts[i][1] < my || (st.pts[i][1] === my && st.pts[i][0] < mx)) { my = st.pts[i][1]; mx = st.pts[i][0]; }
+    }
+    return { y: my, x: mx };
+}
+
+// ============ 轮廓模式（实心图描边） ============
+function traceOutline(bin, W, H, sx, sy) {
+    var BX = -1, BY = -1, d4 = [[1, 0], [-1, 0], [0, 1], [0, -1]], f = false;
+    for (var i = 0; i < 4 && !f; i++) {
+        var nx = sx + d4[i][0], ny = sy + d4[i][1];
+        if (nx < 0 || nx >= W || ny < 0 || ny >= H || !bin[ny * W + nx]) { BX = nx; BY = ny; f = true; }
+    }
+    if (!f) return null;
+    var path = [], PX = sx, PY = sy, guard = 0;
+    while (true) {
+        path.push([PX, PY]);
+        var bdx = BX - PX, bdy = BY - PY, si = -1;
+        for (var i = 0; i < 8; i++) if (CDX[i] === bdx && CDY[i] === bdy) { si = i; break; }
+        if (si < 0) break;
+        var QX = -1, QY = -1, pi = -1;
+        for (var k = 0; k < 8; k++) {
+            var idx = (si + k) % 8, nx = PX + CDX[idx], ny = PY + CDY[idx];
+            if (nx >= 0 && nx < W && ny >= 0 && ny < H && bin[ny * W + nx]) { QX = nx; QY = ny; pi = (si + k - 1 + 8) % 8; break; }
+        }
+        if (QX < 0) break;
+        BX = PX + CDX[pi]; BY = PY + CDY[pi];
+        PX = QX; PY = QY;
+        if (PX === sx && PY === sy) break;
+        if (guard++ > 200000) break;
+    }
+    return path;
+}
+
+function labelComponents(bin, W, H) {
+    var N = W * H, lab = new Int32Array(N), nextId = 1, stack = new Int32Array(N), areas = [];
+    for (var p = 0; p < N; p++) {
+        if (bin[p] && !lab[p]) {
+            var id = nextId++, area = 0, sp = 0;
+            stack[sp++] = p; lab[p] = id;
+            while (sp > 0) {
+                var q = stack[--sp]; area++;
+                var x = q % W, y = (q - x) / W;
+                if (x > 0 && bin[q - 1] && !lab[q - 1]) { lab[q - 1] = id; stack[sp++] = q - 1; }
+                if (x < W - 1 && bin[q + 1] && !lab[q + 1]) { lab[q + 1] = id; stack[sp++] = q + 1; }
+                if (y > 0 && bin[q - W] && !lab[q - W]) { lab[q - W] = id; stack[sp++] = q - W; }
+                if (y < H - 1 && bin[q + W] && !lab[q + W]) { lab[q + W] = id; stack[sp++] = q + W; }
+            }
+            areas[id] = area;
+        }
+    }
+    return { lab: lab, areas: areas, count: nextId - 1 };
+}
+
+function traceContours(bin, W, H, minArea) {
+    var lc = labelComponents(bin, W, H), contours = [];
+    for (var id = 1; id <= lc.count; id++) {
+        if (lc.areas[id] < minArea) continue;
+        var found = false, sx = 0, sy = 0;
+        for (var p = 0; p < W * H && !found; p++) {
+            if (lc.lab[p] === id) {
+                var x = p % W, y = (p - x) / W;
+                if ((x === 0 || !bin[p - 1]) || (x === W - 1 || !bin[p + 1]) || (y === 0 || !bin[p - W]) || (y === H - 1 || !bin[p + W])) { sx = x; sy = y; found = true; }
+            }
+        }
+        if (!found) continue;
+        var loop = traceOutline(bin, W, H, sx, sy);
+        if (loop && loop.length >= 4) contours.push({ pts: loop, closed: true });
+    }
+    return contours;
+}
+
+// ============ 中线模式（骨架/中心线） ============
+function zhangSuen(bin, W, H) {
+    var skel = new Uint8Array(bin), changed = true, it = 0, n = new Int32Array(8);
+    while (changed) {
+        changed = false;
+        var sub, x, y, p, i, k;
+        for (sub = 0; sub < 2; sub++) {
+            var mark = [];
+            for (y = 1; y < H - 1; y++) for (x = 1; x < W - 1; x++) {
+                p = y * W + x; if (!skel[p]) continue;
+                n[0] = skel[p + 1]; n[1] = skel[p + W + 1]; n[2] = skel[p + W]; n[3] = skel[p + W - 1];
+                n[4] = skel[p - 1]; n[5] = skel[p - W - 1]; n[6] = skel[p - W]; n[7] = skel[p - W + 1];
+                var B = 0, A = 0;
+                for (k = 0; k < 8; k++) B += n[k];
+                if (B < 2 || B > 6) continue;
+                for (k = 0; k < 8; k++) if (n[k] === 0 && n[(k + 1) % 8] === 1) A++;
+                if (A !== 1) continue;
+                if (sub === 0) { if (n[6] * n[0] * n[2] !== 0) continue; if (n[0] * n[2] * n[4] !== 0) continue; }
+                else { if (n[6] * n[0] * n[4] !== 0) continue; if (n[6] * n[2] * n[4] !== 0) continue; }
+                mark.push(p);
+            }
+            for (i = 0; i < mark.length; i++) { skel[mark[i]] = 0; changed = true; }
+        }
+        if (++it > 300) break;
+    }
+    return skel;
+}
+
+function nbOf(skel, W, H, p) {
+    var x = p % W, y = (p - x) / W, o = [];
+    for (var i = 0; i < 8; i++) {
+        var nx = x + CDX[i], ny = y + CDY[i];
+        if (nx >= 0 && nx < W && ny >= 0 && ny < H && skel[ny * W + nx]) o.push(ny * W + nx);
+    }
+    return o;
+}
+
+// 分支数：0=孤立 1=端点 2=链（含转角/斜线） >=3=结点
+function branchCount(skel, W, H, p) {
+    var ns = nbOf(skel, W, H, p), C = ns.length;
+    if (C === 0) return 0;
+    if (C === 1) return 1;
+    if (C === 2) return 2;
+    var comp = 0, used = {}, i, j;
+    for (i = 0; i < C; i++) {
+        if (used[i]) continue;
+        comp++;
+        var q = [i]; used[i] = true;
+        while (q.length) {
+            var qi = q.pop();
+            for (j = 0; j < C; j++) {
+                if (used[j]) continue;
+                var ax = ns[qi] % W, ay = (ns[qi] - ax) / W, bx = ns[j] % W, by = (ns[j] - bx) / W;
+                if (Math.abs(ax - bx) <= 1 && Math.abs(ay - by) <= 1) { used[j] = true; q.push(j); }
+            }
+        }
+    }
+    return comp;
+}
+
+// 沿骨架选下一个像素：尽量走直、直行时优先正交（不斜切拐角）
+function nextPixel(skel, W, H, cur, prev) {
+    var ns = nbOf(skel, W, H, cur);
+    if (ns.length === 0) return -1;
+    if (ns.length === 1) return (ns[0] === prev) ? -1 : ns[0];
+    var cx = cur % W, cy = (cur - cx) / W, px = prev % W, py = (prev - px) / W;
+    var dx = cx - px, dy = cy - py;
+    var best = -1, bestScore = -1e9;
+    for (var i = 0; i < ns.length; i++) {
+        if (ns[i] === prev) continue;
+        var nx = ns[i] % W, ny = (ns[i] - nx) / W, vx = nx - cx, vy = ny - cy;
+        var dot = vx * dx + vy * dy;
+        var ortho = (Math.abs(vx) + Math.abs(vy) === 1) ? 1 : 0;
+        var score = dot * 2 + ortho;
+        if (score > bestScore) { bestScore = score; best = ns[i]; }
+    }
+    return best;
+}
+
+// 去短刺：删除长度 < minLen 的端点分支（清理细化毛刺）
+function pruneSpurs(skel, W, H, minLen) {
+    var N = W * H, changed = true;
+    while (changed) {
+        changed = false;
+        for (var p = 0; p < N; p++) {
+            if (!skel[p]) continue;
+            if (branchCount(skel, W, H, p) !== 1) continue;
+            var branch = [p], prev = p, cur = nbOf(skel, W, H, p)[0], guard = 0;
+            while (true) {
+                branch.push(cur);
+                var d = branchCount(skel, W, H, cur);
+                if (d !== 2) break;
+                var nx = nextPixel(skel, W, H, cur, prev);
+                if (nx < 0) break;
+                prev = cur; cur = nx;
+                if (++guard > N) break;
+            }
+            if (branch.length < minLen) { for (var i = 0; i < branch.length; i++) skel[branch[i]] = 0; changed = true; }
+        }
+    }
+    return skel;
+}
+
+// 从骨架抽出笔画：每条「端点—结点 / 结点—结点 / 闭合环」为一笔
+function traceStrokes(skel, W, H) {
+    var N = W * H, p, i, deg = new Int32Array(N);
+    for (p = 0; p < N; p++) if (skel[p]) deg[p] = branchCount(skel, W, H, p);
+    var visited = new Uint8Array(N), strokes = [];
+
+    function chain(p, n0) {
+        var pts = [[p % W, (p - p % W) / W]], prev = p, cur = n0, guard = 0;
+        while (true) {
+            var x = cur % W, y = (cur - x) / W;
+            pts.push([x, y]);
+            if (deg[cur] !== 2) break;
+            visited[cur] = 1;
+            var nx = nextPixel(skel, W, H, cur, prev);
+            if (nx < 0) break;
+            prev = cur; cur = nx;
+            if (++guard > N) break;
+        }
+        return pts;
+    }
+
+    // 1) 从端点出发
+    for (p = 0; p < N; p++) {
+        if (deg[p] !== 1) continue;
+        var ns = nbOf(skel, W, H, p);
+        if (visited[ns[0]]) continue;
+        var pts = chain(p, ns[0]);
+        if (pts.length >= 2) strokes.push({ pts: pts, closed: false });
+    }
+    // 2) 从结点出发（结点—结点 之间的边）
+    for (p = 0; p < N; p++) {
+        if (deg[p] < 3) continue;
+        var ns2 = nbOf(skel, W, H, p);
+        for (i = 0; i < ns2.length; i++) {
+            if (visited[ns2[i]] || deg[ns2[i]] >= 3) continue;
+            var pts2 = chain(p, ns2[i]);
+            if (pts2.length >= 2) strokes.push({ pts: pts2, closed: false });
+        }
+    }
+    // 3) 闭合环（纯 2 邻接、无端点的环）
+    for (p = 0; p < N; p++) {
+        if (!skel[p] || visited[p]) continue;
+        if (deg[p] !== 2) continue;
+        var startNs = nbOf(skel, W, H, p);
+        if (startNs.length < 2) continue;
+        var pts3 = [[p % W, (p - p % W) / W]];
+        visited[p] = 1;
+        var prev = p, cur = startNs[0], guard = 0;
+        while (cur !== p) {
+            var x = cur % W, y = (cur - x) / W;
+            pts3.push([x, y]);
+            visited[cur] = 1;
+            var nx = nextPixel(skel, W, H, cur, prev);
+            if (nx < 0) break;
+            prev = cur; cur = nx;
+            if (++guard > N) break;
+        }
+        if (pts3.length >= 4) strokes.push({ pts: pts3, closed: true });
+    }
+    return strokes;
+}
+
+// 只保留面积 >= minArea 的色块（去噪点）
+function filterByArea(bin, W, H, minArea) {
+    var lc = labelComponents(bin, W, H), out = new Uint8Array(W * H);
+    for (var p = 0; p < W * H; p++) {
+        if (bin[p] && lc.areas[lc.lab[p]] >= minArea) out[p] = 1;
+    }
+    return out;
+}
+
+// ============ 界面 ============
+var dropzone = document.getElementById("dropzone");
+var fileInput = document.getElementById("fileInput");
+var fileInfo = document.getElementById("fileInfo");
+var previewBox = document.getElementById("previewBox");
+var previewCanvas = document.getElementById("preview");
+var statusEl = document.getElementById("status");
+var modeSel = document.getElementById("mode");
+var threshRange = document.getElementById("thresh");
+var threshVal = document.getElementById("threshVal");
+var invertChk = document.getElementById("invert");
+var smoothChk = document.getElementById("smooth");
+var minLenInput = document.getElementById("minLen");
+var runBtn = document.getElementById("runBtn");
+var resultBox = document.getElementById("result");
+var statsEl = document.getElementById("stats");
+var downloadLink = document.getElementById("download");
+var previewCode = document.getElementById("previewCode");
+
+var workCanvas = document.createElement("canvas");
+var gray = null, W = 0, H = 0, currentStrokes = null, imageName = "画";
+
+function readNum(id) { return Number(document.getElementById(id).value); }
+
+function process() {
+    if (!gray) return;
+    var thr = Number(threshRange.value);
+    var invert = invertChk.checked;
+    var bin = new Uint8Array(W * H);
+    for (var i = 0; i < W * H; i++) {
+        var fg = invert ? (gray[i] >= thr) : (gray[i] < thr);
+        bin[i] = fg ? 1 : 0;
+    }
+    var minArea = Number(minLenInput.value) || 0;
+    var doSmooth = smoothChk.checked;
+    var strokes;
+
+    if (modeSel.value === "outline") {
+        strokes = traceContours(bin, W, H, minArea);
+    } else {
+        var filtered = filterByArea(bin, W, H, minArea);
+        var skel = zhangSuen(filtered, W, H);
+        skel = pruneSpurs(skel, W, H, 3);
+        strokes = traceStrokes(skel, W, H);
+    }
+
+    strokes = strokes.map(function (s) { return simplifyStroke(s, 1.2, doSmooth); });
+    strokes = strokes.filter(function (s) { return s.pts.length >= 2; });
+    strokes.sort(function (a, b) { var ta = strokeTopLeft(a), tb = strokeTopLeft(b); return (ta.y - tb.y) || (ta.x - tb.x); });
+
+    currentStrokes = strokes;
+    renderPreview(strokes);
+    var modeName = (modeSel.value === "outline") ? "轮廓" : "中线";
+    statusEl.textContent = "处理像素 " + W + "×" + H + "，抽出 " + strokes.length + " 条笔画（" + modeName + "模式）";
+    runBtn.disabled = !strokes.length;
+}
+
+function renderPreview(strokes) {
+    var dw = 640, dh = Math.max(90, Math.round(dw * H / W));
+    previewCanvas.width = dw; previewCanvas.height = dh;
+    var ctx = previewCanvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, dw, dh);
+    ctx.strokeStyle = "#111"; ctx.lineWidth = 1.4; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    var sx = dw / W, sy = dh / H;
+    ctx.beginPath();
+    for (var i = 0; i < strokes.length; i++) {
+        var st = strokes[i]; if (st.pts.length < 2) continue;
+        ctx.moveTo(st.pts[0][0] * sx, st.pts[0][1] * sy);
+        for (var j = 1; j < st.pts.length; j++) ctx.lineTo(st.pts[j][0] * sx, st.pts[j][1] * sy);
+        if (st.closed) ctx.lineTo(st.pts[0][0] * sx, st.pts[0][1] * sy);
+    }
+    ctx.stroke();
+}
+
+function loadImage(file) {
+    imageName = file.name.replace(/\.[^.]+$/, "");
+    fileInfo.textContent = "已选择：" + file.name + "（" + (file.size / 1024).toFixed(1) + " KB），正在处理…";
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var s = Math.min(1, 1400 / Math.max(w, h));
+        W = Math.max(1, Math.round(w * s)); H = Math.max(1, Math.round(h * s));
+        workCanvas.width = W; workCanvas.height = H;
+        var ctx = workCanvas.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(img, 0, 0, W, H);
+        var data = ctx.getImageData(0, 0, W, H).data;
+        gray = new Uint8Array(W * H);
+        var sum = 0, i;
+        for (i = 0; i < W * H; i++) {
+            var r = data[i * 4], g = data[i * 4 + 1], b = data[i * 4 + 2];
+            var l = Math.round((r * 299 + g * 587 + b * 114) / 1000);
+            gray[i] = l; sum += l;
+        }
+        var mean = sum / (W * H);
+        invertChk.checked = mean < 128;   // 深色背景 -> 自动反色
+        var hist = new Array(256); for (i = 0; i < 256; i++) hist[i] = 0;
+        for (i = 0; i < gray.length; i++) hist[gray[i]]++;
+        var o = otsu(hist, W * H);
+        threshRange.value = o; threshVal.textContent = o;
+        URL.revokeObjectURL(url);
+        previewBox.hidden = false;
+        process();
+        fileInfo.textContent = "已选择：" + file.name + "（" + (file.size / 1024).toFixed(1) + " KB）";
+    };
+    img.onerror = function () { fileInfo.textContent = "图片读取失败，换个文件试试。"; };
+    img.src = url;
+}
+
+dropzone.addEventListener("click", function () { fileInput.click(); });
+fileInput.addEventListener("change", function () { if (fileInput.files.length) loadImage(fileInput.files[0]); });
+["dragover", "dragenter"].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.add("over"); });
+});
+["dragleave", "drop"].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.remove("over"); });
+});
+dropzone.addEventListener("drop", function (e) {
+    if (e.dataTransfer.files.length) loadImage(e.dataTransfer.files[0]);
+});
+
+var debounceTimer = null;
+function schedule() { if (debounceTimer) clearTimeout(debounceTimer); debounceTimer = setTimeout(process, 250); }
+modeSel.addEventListener("change", process);
+threshRange.addEventListener("input", function () { threshVal.textContent = threshRange.value; schedule(); });
+invertChk.addEventListener("change", process);
+smoothChk.addEventListener("change", process);
+minLenInput.addEventListener("change", process);
+
+runBtn.addEventListener("click", function () {
+    if (!currentStrokes || !currentStrokes.length) return;
+    var widthMm = readNum("widthMm");
+    var scale = widthMm / W;
+    var heightMm = (H * scale).toFixed(1);
+    var downZ = readNum("downZ"), upZ = readNum("upZ"), feed = readNum("feed");
+    function f(n) { return n.toFixed(3); }
+    var out = [];
+    out.push(""); out.push("G21"); out.push("G90"); out.push("F" + feed);
+    out.push("G1G90 Z" + upZ.toFixed(1) + "F" + feed);
+    out.push("G1G90 Z" + upZ.toFixed(1) + "F" + feed);
+    for (var i = 0; i < currentStrokes.length; i++) {
+        var st = currentStrokes[i];
+        if (st.pts.length < 2) continue;
+        out.push("G0 X" + f(st.pts[0][0] * scale) + "Y" + f(st.pts[0][1] * scale) + "F" + feed);
+        out.push("G1G90 Z" + downZ.toFixed(1) + "F" + feed);
+        for (var j = 1; j < st.pts.length; j++) out.push("G1 X" + f(st.pts[j][0] * scale) + "Y" + f(st.pts[j][1] * scale) + "F" + feed);
+        if (st.closed) out.push("G1 X" + f(st.pts[0][0] * scale) + "Y" + f(st.pts[0][1] * scale) + "F" + feed);   // 闭合一圈
+        out.push("G1G90 Z" + upZ.toFixed(1) + "F" + feed);
+    }
+    out.push("G90G0 X0Y0");
+    var text = out.join("\r\n");
+    var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    downloadLink.href = url;
+    downloadLink.download = imageName + "_单线.gcode";
+    downloadLink.textContent = "下载 " + imageName + "_单线.gcode";
+    statsEl.innerHTML = "✅ 抽出 <b>" + currentStrokes.length + "</b> 条笔画，成品约 " + widthMm + "mm 宽 × " + heightMm + "mm 高。下载后拖进「合并工具」拼成 2×4 一版。";
+    previewCode.textContent = text.split("\r\n").slice(0, 30).join("\n");
+    resultBox.hidden = false;
+});
+</script>
+
+
+<!-- Redchen 书法机器人 · 天工书画一代 · By 孙红晨 -->
+<footer id="rc-brand" style="margin:28px 0 20px;padding:14px 16px 0;border-top:1px solid #e6e1d6;
+  text-align:center;font:12px/1.7 'Microsoft YaHei','PingFang SC',sans-serif;color:#8a8378;letter-spacing:.3px">
+  <span style="color:#232220;font-weight:600">Redchen 书法机器人</span>
+  <span style="opacity:.4;margin:0 7px">·</span>
+  <span style="font-family:KaiTi,STKaiti,serif;letter-spacing:1px">天工书画一代</span>
+  <span style="opacity:.4;margin:0 7px">·</span>
+  <span>By 孙红晨</span>
+</footer>
+</body>
+</html>

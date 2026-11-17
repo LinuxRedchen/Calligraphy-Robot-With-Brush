@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="author" content="孙红晨">
+<meta name="application-name" content="Redchen 书法机器人 · 天工书画一代">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redchen 书法机器人 · 蘸墨处理工具 · 写字机加蘸墨</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --line:#e3e6ea; --accent:#1f6feb; --accent2:#0b5bd3; --text:#1f2328; --muted:#6b7280; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  .wrap { max-width:760px; margin:0 auto; padding:28px 20px 60px; }
+  h1 { font-size:24px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 22px; font-size:14px; }
+  #dropzone {
+    border:2px dashed #c4cad2; border-radius:12px; background:var(--card);
+    padding:40px 20px; text-align:center; cursor:pointer; transition:.15s;
+    color:var(--muted); font-size:15px;
+  }
+  #dropzone.over { border-color:var(--accent); background:#eef4ff; color:var(--accent); }
+  #dropzone b { color:var(--text); }
+  #fileInfo { font-size:13px; color:var(--muted); margin:10px 2px 0; }
+  fieldset { border:1px solid var(--line); border-radius:10px; background:var(--card); padding:14px 16px 16px; margin:16px 0 0; }
+  legend { font-weight:600; padding:0 6px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px 18px; }
+  label { display:flex; flex-direction:column; font-size:13px; color:var(--muted); gap:5px; }
+  input[type=number] {
+    font-size:15px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; width:100%;
+  }
+  input[type=number]:focus { outline:none; border-color:var(--accent); }
+  select { font-size:15px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; width:100%; background:#fff; color:var(--text); }
+  select:focus { outline:none; border-color:var(--accent); }
+  .chk { display:flex; flex-direction:row; align-items:center; gap:8px; font-size:14px; color:var(--text); margin:0 0 12px; cursor:pointer; }
+  .chk input { width:16px; height:16px; }
+  .hint { font-size:12px; color:#9aa1a9; margin:8px 2px 0; }
+  #runBtn {
+    display:block; width:100%; margin-top:20px; padding:14px; font-size:16px; font-weight:600;
+    color:#fff; background:var(--accent); border:none; border-radius:10px; cursor:pointer; transition:.15s;
+  }
+  #runBtn:hover:not(:disabled) { background:var(--accent2); }
+  #runBtn:disabled { background:#c4cad2; cursor:not-allowed; }
+  #result { margin-top:20px; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; }
+  #stats { font-size:15px; margin:0 0 12px; }
+  #download {
+    display:inline-block; padding:11px 22px; background:#16a34a; color:#fff; font-weight:600;
+    border-radius:8px; text-decoration:none;
+  }
+  #download:hover { background:#15803d; }
+  details { margin-top:16px; }
+  summary { cursor:pointer; color:var(--muted); font-size:13px; }
+  pre { background:#0f1115; color:#e6edf3; padding:12px; border-radius:8px; overflow:auto; font-size:12px; max-height:300px; }
+  .err { color:#dc2626; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>蘸墨处理工具</h1>
+  <p class="sub">把写字机导出的 .gcode 文件拖进来，自动在「每画满一定距离」后插入一次蘸墨（去固定墨盘蘸墨，再回到断点继续画）。</p>
+
+  <div id="dropzone">
+    <b>把 .gcode 文件拖到这里</b><br>或点击选择文件
+  </div>
+  <input type="file" id="fileInput" accept=".gcode,.nc,.txt" hidden>
+  <p id="fileInfo"></p>
+
+  <fieldset>
+    <legend>墨盘位置（固定蘸墨点）</legend>
+    <div class="grid">
+      <label>墨盘 X (mm)<input id="inkX" type="number" value="100" step="0.1"></label>
+      <label>墨盘 Y (mm)<input id="inkY" type="number" value="100" step="0.1"></label>
+    </div>
+    <div class="hint">★ 量一下你墨盘实际坐标填这里，别填画纸上的位置。</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>蘸墨动作</legend>
+    <div class="grid">
+      <label>落笔 Z（下压）<input id="inkZ" type="number" value="5" step="0.1"></label>
+      <label>抬笔 Z<input id="inkUpZ" type="number" value="0" step="0.1"></label>
+      <label>停留吸墨（秒）<input id="dwell" type="number" value="0.8" step="0.1" min="0"></label>
+    </div>
+    <div class="hint">停留设 0 = 不插入 G4 停留那行（万一软件不认 G4 就设 0）。</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>刮墨（蘸墨后刮掉多余墨水）</legend>
+    <label class="chk"><input type="checkbox" id="scrapeOn" checked> 启用刮墨</label>
+    <div class="grid">
+      <label>蘸墨后先移开多远 (mm)<input id="moveDist" type="number" value="30" step="1"></label>
+      <label>移开方向
+        <select id="moveDir">
+          <option value="right">向右 (+X)</option>
+          <option value="left">向左 (-X)</option>
+          <option value="down">向下 (+Y)</option>
+          <option value="up">向上 (-Y)</option>
+        </select>
+      </label>
+      <label>刮墨滑动方向
+        <select id="scrapeDir">
+          <option value="right">向右 (+X)</option>
+          <option value="left">向左 (-X)</option>
+          <option value="down">向下 (+Y)</option>
+          <option value="up">向上 (-Y)</option>
+        </select>
+      </label>
+      <label>刮墨滑动距离 (mm)<input id="scrapeDist" type="number" value="20" step="1"></label>
+      <label>刮墨下压 Z<input id="scrapeZ" type="number" value="5" step="0.1"></label>
+    </div>
+    <div class="hint">蘸墨后抬笔 → 从墨盘朝「移开方向」移开一段距离 → 下压 → 朝「滑动方向」滑动刮墨 → 抬笔回断点。这样刮墨点就不在墨盘里了。</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>触发条件</legend>
+    <div class="grid">
+      <label>每画满多少毫米蘸一次<input id="every" type="number" value="400" step="10"></label>
+    </div>
+    <div class="hint">想蘸勤点就把这个数调小。</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>机器参数（一般不用改）</legend>
+    <div class="grid">
+      <label>机器落笔 Z<input id="penDownZ" type="number" value="5" step="0.1"></label>
+      <label>机器抬笔 Z<input id="penUpZ" type="number" value="0" step="0.1"></label>
+      <label>F 速度<input id="feed" type="number" value="10000" step="1000"></label>
+    </div>
+    <div class="hint">步进电机模式默认落笔 Z=5、抬笔 Z=0。若导出文件里 Z 后面的 F 不是 10000，改成那个数。</div>
+  </fieldset>
+
+  <button id="runBtn" disabled>生成蘸墨文件</button>
+
+  <div id="result" hidden>
+    <p id="stats"></p>
+    <a id="download" download>下载蘸墨文件</a>
+    <details>
+      <summary>预览前 30 行</summary>
+      <pre id="preview"></pre>
+    </details>
+  </div>
+</div>
+
+<script>
+// ============ 核心处理逻辑（已本地实测，与 add_ink.sh 一致） ============
+function processGcode(text, opts) {
+    var inkX = opts.inkX, inkY = opts.inkY, inkZ = opts.inkZ, inkUpZ = opts.inkUpZ;
+    var dwell = opts.dwell, every = opts.every, penDownZ = opts.penDownZ;
+    var penUpZ = opts.penUpZ, feed = opts.feed;
+    var scrape = opts.scrape, scrapeDir = opts.scrapeDir, scrapeDist = opts.scrapeDist, scrapeZ = opts.scrapeZ;
+    var moveDir = opts.moveDir, moveDist = opts.moveDist;
+
+    var lines = text.split(/\r?\n/);
+    var out = [];
+    var pen = 0, px = 0, py = 0, have = false, total = 0, pending = false, hold = false;
+    var inkCount = 0;
+
+    function dist(x1, y1, x2, y2) {
+        var dx = x2 - x1, dy = y2 - y1;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    function offset(dir, d) {
+        if (dir === "left") return [-d, 0];
+        if (dir === "down") return [0, d];
+        if (dir === "up")   return [0, -d];
+        return [d, 0]; // right (+X)
+    }
+    function emit(px, py) {
+        out.push("G0 X" + inkX.toFixed(3) + "Y" + inkY.toFixed(3) + "F" + feed);   // 去墨盘
+        out.push("G1G90 Z" + inkZ.toFixed(1) + "F" + feed);                        // 落笔蘸墨
+        if (dwell > 0) out.push("G4 P" + dwell.toFixed(2));                        // 停留吸墨
+        out.push("G1G90 Z" + inkUpZ.toFixed(1) + "F" + feed);                      // 抬笔
+        if (scrape) {
+            var mv = offset(moveDir, moveDist);                 // 蘸墨后先移开
+            var sx = inkX + mv[0], sy = inkY + mv[1];           // 刮墨起点
+            var sl = offset(scrapeDir, scrapeDist);             // 刮墨滑动
+            var ex = sx + sl[0], ey = sy + sl[1];               // 刮墨终点
+            out.push("G0 X" + sx.toFixed(3) + "Y" + sy.toFixed(3) + "F" + feed);   // 移到刮墨点
+            out.push("G1G90 Z" + scrapeZ.toFixed(1) + "F" + feed);                 // 下压刮墨
+            out.push("G1 X" + ex.toFixed(3) + "Y" + ey.toFixed(3) + "F" + feed);   // 滑动刮墨
+            out.push("G1G90 Z" + inkUpZ.toFixed(1) + "F" + feed);                  // 抬笔
+        }
+        out.push("G0 X" + px.toFixed(3) + "Y" + py.toFixed(3) + "F" + feed);       // 回断点
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].replace(/\r$/, "");
+
+        // 上一行挂起的蘸墨：若下一行是回零(0,0)，说明到文件末尾，跳过
+        if (hold) {
+            hold = false;
+            var mh = line.match(/X(-?[0-9.]+)Y(-?[0-9.]+)/);
+            var isHome = mh && (Number(mh[1]) === 0) && (Number(mh[2]) === 0);
+            if (!isHome) { emit(px, py); inkCount++; }
+        }
+
+        // 1) 抬笔 / 落笔（按 Z 值）
+        var mz = line.match(/Z(-?[0-9.]+)/);
+        if (mz) {
+            var z = Number(mz[1]);
+            if (z === penUpZ) {
+                out.push(line);
+                if (pending) { hold = true; pending = false; total = 0; }
+                pen = 0;
+                continue;
+            }
+            if (z === penDownZ) {
+                pen = 1;
+                out.push(line);
+                continue;
+            }
+        }
+
+        // 2) 落笔时累加画长 / 抬笔时只更新位置
+        var mxy = line.match(/X(-?[0-9.]+)Y(-?[0-9.]+)/);
+        if (mxy) {
+            var x = Number(mxy[1]), y = Number(mxy[2]);
+            if (pen === 1) {
+                if (have) {
+                    total += dist(px, py, x, y);
+                    if (total >= every) pending = true;
+                }
+                px = x; py = y; have = true;
+            } else {
+                px = x; py = y; have = true;
+            }
+        }
+        out.push(line);
+    }
+
+    return { text: out.join("\r\n"), inkCount: inkCount };
+}
+
+// ============ 界面 ============
+var dropzone = document.getElementById("dropzone");
+var fileInput = document.getElementById("fileInput");
+var fileInfo = document.getElementById("fileInfo");
+var runBtn = document.getElementById("runBtn");
+var resultBox = document.getElementById("result");
+var statsEl = document.getElementById("stats");
+var downloadLink = document.getElementById("download");
+var previewEl = document.getElementById("preview");
+
+var currentFile = null;
+
+function readNum(id) { return Number(document.getElementById(id).value); }
+
+function outputName(name) {
+    return name.replace(/\.(gcode|nc|txt)$/i, "") + "_蘸墨.gcode";
+}
+
+function handleFile(file) {
+    currentFile = file;
+    fileInfo.textContent = "已选择：" + file.name + "（" + (file.size / 1024).toFixed(1) + " KB）";
+    runBtn.disabled = false;
+}
+
+dropzone.addEventListener("click", function () { fileInput.click(); });
+fileInput.addEventListener("change", function () {
+    if (fileInput.files.length) handleFile(fileInput.files[0]);
+});
+["dragover", "dragenter"].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.add("over"); });
+});
+["dragleave", "drop"].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.remove("over"); });
+});
+dropzone.addEventListener("drop", function (e) {
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+
+runBtn.addEventListener("click", function () {
+    if (!currentFile) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+        var opts = {
+            inkX: readNum("inkX"), inkY: readNum("inkY"),
+            inkZ: readNum("inkZ"), inkUpZ: readNum("inkUpZ"),
+            dwell: readNum("dwell"), every: readNum("every"),
+            penDownZ: readNum("penDownZ"), penUpZ: readNum("penUpZ"),
+            feed: readNum("feed"),
+            scrape: document.getElementById("scrapeOn").checked,
+            moveDir: document.getElementById("moveDir").value,
+            moveDist: readNum("moveDist"),
+            scrapeDir: document.getElementById("scrapeDir").value,
+            scrapeDist: readNum("scrapeDist"), scrapeZ: readNum("scrapeZ")
+        };
+        try {
+            var result = processGcode(reader.result, opts);
+            var blob = new Blob([result.text], { type: "text/plain;charset=utf-8" });
+            var url = URL.createObjectURL(blob);
+            downloadLink.href = url;
+            downloadLink.download = outputName(currentFile.name);
+            downloadLink.textContent = "下载 " + outputName(currentFile.name);
+            statsEl.innerHTML = "✅ 处理完成，共插入 <b>" + result.inkCount + "</b> 次蘸墨。";
+            previewEl.textContent = result.text.split("\r\n").slice(0, 30).join("\n");
+            resultBox.hidden = false;
+        } catch (err) {
+            statsEl.innerHTML = '<span class="err">处理出错：' + err.message + "</span>";
+            resultBox.hidden = false;
+        }
+    };
+    reader.readAsText(currentFile);
+});
+</script>
+
+
+<!-- Redchen 书法机器人 · 天工书画一代 · By 孙红晨 -->
+<footer id="rc-brand" style="margin:28px 0 20px;padding:14px 16px 0;border-top:1px solid #e6e1d6;
+  text-align:center;font:12px/1.7 'Microsoft YaHei','PingFang SC',sans-serif;color:#8a8378;letter-spacing:.3px">
+  <span style="color:#232220;font-weight:600">Redchen 书法机器人</span>
+  <span style="opacity:.4;margin:0 7px">·</span>
+  <span style="font-family:KaiTi,STKaiti,serif;letter-spacing:1px">天工书画一代</span>
+  <span style="opacity:.4;margin:0 7px">·</span>
+  <span>By 孙红晨</span>
+</footer>
+</body>
+</html>
